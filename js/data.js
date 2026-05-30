@@ -11,7 +11,6 @@ const LEAGUE_IDS = {
 };
 
 const SPURS_ID = 47; // API-Football Tottenham team ID
-const SON_ID = 308;  // API-Football Son Heung-min player ID
 const SEASON = 2024;
 
 function getCacheKey(key) { return `ftdas_${key}`; }
@@ -42,15 +41,20 @@ async function apiFetch(path) {
   }
 }
 
-// 손흥민 스탯
+// 손흥민 스탯 — 이름 검색으로 ID에 의존하지 않음
 async function fetchSonStats() {
   const cached = getCache('son_stats');
   if (cached) return cached;
 
-  const json = await apiFetch(`/players?id=${SON_ID}&season=${SEASON}`);
-  if (!json?.response?.[0]) return getManualSonStats();
+  // 토트넘 스쿼드에서 "Son" 검색
+  const json = await apiFetch(`/players?search=Son&team=${SPURS_ID}&season=${SEASON}`);
+  const player = json?.response?.find(p =>
+    p.player.lastname.toLowerCase().includes('son') ||
+    p.player.firstname.toLowerCase().includes('heung')
+  );
+  if (!player) return getManualSonStats();
 
-  const s = json.response[0].statistics[0];
+  const s = player.statistics[0];
   const data = {
     goals: s.goals.total ?? '—',
     assists: s.goals.assists ?? '—',
