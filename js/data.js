@@ -13,24 +13,33 @@ const LEAGUE_IDS = {
 const SPURS_ID = 47;
 const SEASON = 2025;
 const SEASON_FALLBACK = 2024;
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+const KST_OFFSET = 9 * 60 * 60 * 1000; // UTC+9
+
+function todayKST() {
+  return new Date(Date.now() + KST_OFFSET).toISOString().slice(0, 10);
+}
 
 function getCacheKey(key) { return `ftdas_${key}`; }
 
-function getCache(key, ttl = ONE_DAY_MS) {
+// ttl: 'kst-day' = KST 당일, number = ms TTL
+function getCache(key, ttl = 'kst-day') {
   try {
     const raw = localStorage.getItem(getCacheKey(key));
     if (!raw) return null;
-    const { ts, data } = JSON.parse(raw);
-    if (Date.now() - ts > ttl) return null;
+    const { ts, date, data } = JSON.parse(raw);
+    if (ttl === 'kst-day') {
+      if (date !== todayKST()) return null;
+    } else {
+      if (Date.now() - ts > ttl) return null;
+    }
     return data;
   } catch { return null; }
 }
 
 function setCache(key, data) {
   try {
-    localStorage.setItem(getCacheKey(key), JSON.stringify({ ts: Date.now(), data }));
+    localStorage.setItem(getCacheKey(key), JSON.stringify({ ts: Date.now(), date: todayKST(), data }));
   } catch {}
 }
 

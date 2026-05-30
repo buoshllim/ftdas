@@ -20,7 +20,13 @@ module.exports = async function handler(req, res) {
       },
     });
     const data = await response.json();
-    res.setHeader('Cache-Control', 's-maxage=86400');
+    // KST 자정까지 남은 초로 캐시 설정 (midnight KST = 15:00 UTC)
+    const now = new Date();
+    const nextMidnightKST = new Date();
+    nextMidnightKST.setUTCHours(15, 0, 0, 0);
+    if (nextMidnightKST <= now) nextMidnightKST.setUTCDate(nextMidnightKST.getUTCDate() + 1);
+    const sMaxAge = Math.max(60, Math.floor((nextMidnightKST - now) / 1000));
+    res.setHeader('Cache-Control', `s-maxage=${sMaxAge}`);
     return res.status(response.status).json(data);
   } catch (err) {
     return res.status(500).json({ error: 'upstream fetch failed', detail: err.message });
