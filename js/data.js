@@ -11,7 +11,7 @@ const LEAGUE_IDS = {
 };
 
 const SPURS_ID = 47; // API-Football Tottenham team ID
-const SEASON = 2024;
+const SEASON = 2025; // 2025-26 시즌
 
 function getCacheKey(key) { return `ftdas_${key}`; }
 
