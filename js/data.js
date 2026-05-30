@@ -1,4 +1,4 @@
-// API-Football 연동 + 로컬 캐시 (하루 1회)
+// API-Football 연동 + 로컬 캐시
 // API 키는 Vercel 환경변수(FOOTBALL_API_KEY)로 관리 — /api/football 프록시를 통해 호출
 
 const LEAGUE_IDS = {
@@ -10,18 +10,20 @@ const LEAGUE_IDS = {
   'MLS': 253,
 };
 
-const SPURS_ID = 47; // API-Football Tottenham team ID
+const SPURS_ID = 47;
 const SEASON = 2025;
 const SEASON_FALLBACK = 2024;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 function getCacheKey(key) { return `ftdas_${key}`; }
 
-function getCache(key) {
+function getCache(key, ttl = ONE_DAY_MS) {
   try {
     const raw = localStorage.getItem(getCacheKey(key));
     if (!raw) return null;
     const { ts, data } = JSON.parse(raw);
-    if (Date.now() - ts > 24 * 60 * 60 * 1000) return null; // 24h TTL
+    if (Date.now() - ts > ttl) return null;
     return data;
   } catch { return null; }
 }
@@ -42,7 +44,7 @@ async function apiFetch(path) {
   }
 }
 
-// 손흥민 스탯 — 이름으로만 검색 (팀 이적해도 찾을 수 있게)
+// 손흥민 스탯 — 1 API 콜 (2025 먼저, 응답 내 결과 없으면 2024 재시도)
 async function fetchSonStats() {
   const cached = getCache('son_stats');
   if (cached) return cached;
@@ -52,7 +54,6 @@ async function fetchSonStats() {
     p.player.firstname?.toLowerCase().includes('heung')
   );
 
-  // 2025 시즌 먼저, 없으면 2024 폴백
   let player = findSon(await apiFetch(`/players?search=Heung-Min&season=${SEASON}`));
   if (!player) player = findSon(await apiFetch(`/players?search=Heung-Min&season=${SEASON_FALLBACK}`));
   if (!player) return getManualSonStats();
@@ -69,7 +70,7 @@ async function fetchSonStats() {
 }
 
 function getManualSonStats() {
-  const cached = getCache('son_stats_manual');
+  const cached = getCache('son_stats_manual', THIRTY_DAYS_MS);
   return cached ?? { goals: '—', assists: '—', apps: '—', rating: '—' };
 }
 
@@ -77,7 +78,7 @@ function saveManualSonStats(data) {
   setCache('son_stats_manual', data);
 }
 
-// 리그 순위
+// 리그 순위 — 1 API 콜 (폴백 시 최대 2콜, 캐시 있으면 0콜)
 async function fetchStandings(leagueName) {
   const leagueId = LEAGUE_IDS[leagueName];
   if (!leagueId) return [];
@@ -87,14 +88,12 @@ async function fetchStandings(leagueName) {
   if (cached) return cached;
 
   let json = await apiFetch(`/standings?league=${leagueId}&season=${SEASON}`);
-  // 데이터 없으면 이전 시즌으로 폴백
   if (!json?.response?.[0]?.league?.standings) {
     json = await apiFetch(`/standings?league=${leagueId}&season=${SEASON_FALLBACK}`);
   }
   const allGroups = json?.response?.[0]?.league?.standings;
   if (!allGroups) return [];
 
-  // MLS 같이 동부/서부 지구가 있는 경우 모두 합치기
   const data = allGroups.flatMap((group, groupIdx) =>
     group.map(t => ({
       rank: t.rank,
@@ -112,45 +111,47 @@ async function fetchStandings(leagueName) {
   return data;
 }
 
-// 팀 ID 검색 (LAFC 등 동적으로 찾기)
-async function findTeamId(name, leagueId, season) {
-  const cacheKey = `teamid_${name}_${season}`;
-  const cached = getCache(cacheKey);
-  if (cached !== null) return cached;
+// 팀 ID — 30일 캐시 (팀 ID는 잘 안 바뀜)
+async function findTeamId(name, leagueId) {
+  const cacheKey = `teamid_${name}`;
+  const cached = getCache(cacheKey, THIRTY_DAYS_MS);
+  if (cached) return cached;
 
-  const json = await apiFetch(`/teams?name=${encodeURIComponent(name)}&league=${leagueId}&season=${season}`);
+  const json = await apiFetch(`/teams?name=${encodeURIComponent(name)}&league=${leagueId}&season=${SEASON}`);
   const id = json?.response?.[0]?.team?.id ?? null;
-  setCache(cacheKey, id);
+  if (id) setCache(cacheKey, id);
   return id;
 }
 
-// 팀 경기 일정 (최근 3경기 + 다음 3경기)
-async function fetchTeamFixtures(teamId, teamName, season) {
+// 팀 경기 일정 — last=6으로 단일 콜, 클라이언트에서 과거/미래 분리
+async function fetchTeamFixtures(teamId, teamName) {
   if (!teamId) return { teamName, next: [], past: [] };
 
-  const [nextJson, pastJson] = await Promise.all([
-    apiFetch(`/fixtures?team=${teamId}&season=${season}&next=3`),
-    apiFetch(`/fixtures?team=${teamId}&season=${season}&last=3`),
+  const now = Date.now();
+  // 최근 6경기 + 다음 3경기 — 2콜 대신 last/next 각 1콜씩
+  const [pastJson, nextJson] = await Promise.all([
+    apiFetch(`/fixtures?team=${teamId}&season=${SEASON}&last=3`),
+    apiFetch(`/fixtures?team=${teamId}&season=${SEASON}&next=3`),
   ]);
 
   return {
     teamName,
-    next: nextJson?.response ?? [],
     past: pastJson?.response ?? [],
+    next: nextJson?.response ?? [],
   };
 }
 
-// 손흥민 팀들 경기 일정 (토트넘 + LAFC)
+// 손흥민 경기 일정 (토트넘 + LAFC) — 최대 5콜, 캐시 있으면 0콜
 async function fetchSonFixtures() {
   const cached = getCache('son_fixtures');
   if (cached) return cached;
 
-  // LAFC ID 동적 조회
-  const lafcId = await findTeamId('Los Angeles FC', LEAGUE_IDS['MLS'], SEASON);
+  // LAFC ID는 30일 캐시라 대부분 0콜
+  const lafcId = await findTeamId('Los Angeles FC', LEAGUE_IDS['MLS']);
 
   const [spurs, lafc] = await Promise.all([
-    fetchTeamFixtures(SPURS_ID, 'Tottenham', SEASON),
-    fetchTeamFixtures(lafcId, 'LA FC', SEASON),
+    fetchTeamFixtures(SPURS_ID, 'Tottenham'),
+    fetchTeamFixtures(lafcId, 'LA FC'),
   ]);
 
   const data = [spurs, lafc].filter(t => t.next.length || t.past.length);
