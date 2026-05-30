@@ -67,38 +67,54 @@
       <span id="refresh-status"></span>
     </div>
     <div class="data-grid">
-      <!-- 손흥민 스탯 -->
-      <div class="data-card son-stats">
-        <h2>⚽ 손흥민 시즌 스탯</h2>
-        <div id="son-stats-content" class="stats-grid">
-          <div class="stat-box">
-            <div class="stat-value" id="son-goals">—</div>
-            <div class="stat-label">골</div>
+      <!-- 왼쪽: 손흥민 스탯 + 경기 일정 -->
+      <div class="data-left">
+        <div class="data-card">
+          <h2>⚽ 손흥민 시즌 스탯</h2>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-value" id="son-goals">—</div>
+              <div class="stat-label">골</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value" id="son-assists">—</div>
+              <div class="stat-label">어시스트</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value" id="son-apps">—</div>
+              <div class="stat-label">출전</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value" id="son-rating">—</div>
+              <div class="stat-label">평점</div>
+            </div>
           </div>
-          <div class="stat-box">
-            <div class="stat-value" id="son-assists">—</div>
-            <div class="stat-label">어시스트</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-value" id="son-apps">—</div>
-            <div class="stat-label">출전</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-value" id="son-rating">—</div>
-            <div class="stat-label">평점</div>
+          <button class="edit-btn" id="son-edit-btn">✏️ 직접 입력</button>
+          <div id="son-edit-form" class="edit-form hidden">
+            <input type="number" id="input-goals" placeholder="골" min="0" />
+            <input type="number" id="input-assists" placeholder="어시스트" min="0" />
+            <input type="number" id="input-apps" placeholder="출전" min="0" />
+            <input type="number" id="input-rating" placeholder="평점 (0~10)" step="0.1" min="0" max="10" />
+            <button id="son-save-btn">저장</button>
           </div>
         </div>
-        <button class="edit-btn" id="son-edit-btn">✏️ 직접 입력</button>
-        <div id="son-edit-form" class="edit-form hidden">
-          <input type="number" id="input-goals" placeholder="골" min="0" />
-          <input type="number" id="input-assists" placeholder="어시스트" min="0" />
-          <input type="number" id="input-apps" placeholder="출전" min="0" />
-          <input type="number" id="input-rating" placeholder="평점 (0~10)" step="0.1" min="0" max="10" />
-          <button id="son-save-btn">저장</button>
+
+        <div class="data-card">
+          <h2>📅 토트넘 경기</h2>
+          <div id="spurs-fixtures-content">
+            <div class="loading">불러오는 중...</div>
+          </div>
+        </div>
+
+        <div class="data-card">
+          <h2>📅 LA FC 경기</h2>
+          <div id="lafc-fixtures-content">
+            <div class="loading">불러오는 중...</div>
+          </div>
         </div>
       </div>
 
-      <!-- 리그 순위 -->
+      <!-- 오른쪽: 리그 순위 -->
       <div class="data-card standings">
         <h2>🏆 리그 순위</h2>
         <div class="league-tabs">
@@ -109,39 +125,16 @@
           <button class="league-btn" data-league="K리그">K리그</button>
           <button class="league-btn" data-league="MLS">MLS</button>
         </div>
-        <div id="standings-content">
-          <table id="standings-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>팀</th>
-                <th>승점</th>
-                <th>승</th>
-                <th>무</th>
-                <th>패</th>
-              </tr>
-            </thead>
-            <tbody id="standings-body">
-              <tr><td colspan="6" class="loading">불러오는 중...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- 경기 일정 컬럼 -->
-      <div class="fixtures-col">
-        <div class="data-card fixtures">
-          <h2>📅 토트넘 경기</h2>
-          <div id="spurs-fixtures-content">
-            <div class="loading">불러오는 중...</div>
-          </div>
-        </div>
-        <div class="data-card fixtures">
-          <h2>📅 LA FC 경기</h2>
-          <div id="lafc-fixtures-content">
-            <div class="loading">불러오는 중...</div>
-          </div>
-        </div>
+        <table id="standings-table">
+          <thead>
+            <tr>
+              <th>#</th><th>팀</th><th>승점</th><th>승</th><th>무</th><th>패</th>
+            </tr>
+          </thead>
+          <tbody id="standings-body">
+            <tr><td colspan="6" class="loading">불러오는 중...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
