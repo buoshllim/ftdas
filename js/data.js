@@ -11,7 +11,8 @@ const LEAGUE_IDS = {
 };
 
 const SPURS_ID = 47; // API-Football Tottenham team ID
-const SEASON = 2025; // 2025-26 시즌
+const SEASON = 2025;
+const SEASON_FALLBACK = 2024;
 
 function getCacheKey(key) { return `ftdas_${key}`; }
 
@@ -83,7 +84,11 @@ async function fetchStandings(leagueName) {
   const cached = getCache(cacheKey);
   if (cached) return cached;
 
-  const json = await apiFetch(`/standings?league=${leagueId}&season=${SEASON}`);
+  let json = await apiFetch(`/standings?league=${leagueId}&season=${SEASON}`);
+  // 데이터 없으면 이전 시즌으로 폴백
+  if (!json?.response?.[0]?.league?.standings) {
+    json = await apiFetch(`/standings?league=${leagueId}&season=${SEASON_FALLBACK}`);
+  }
   const allGroups = json?.response?.[0]?.league?.standings;
   if (!allGroups) return [];
 

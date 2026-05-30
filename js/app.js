@@ -139,12 +139,7 @@ async function loadStandings(league) {
   const rows = await fetchStandings(league);
 
   if (!rows.length) {
-    // If no API key, show placeholder
-    tbody.innerHTML = `
-      <tr><td colspan="6" class="loading">
-        API 키를 설정하면 실시간 순위를 볼 수 있어요!<br>
-        <small>data.js에서 API_KEY를 입력해주세요</small>
-      </td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="loading">데이터를 불러오지 못했어요. 새로고침 눌러봐!</td></tr>`;
     return;
   }
 
@@ -173,7 +168,7 @@ async function loadFixtures() {
   const data = await fetchSpursFixtures();
 
   if (!data || (!data.next?.length && !data.past?.length)) {
-    el.innerHTML = `<div class="loading">API 키를 설정하면 경기 일정을 볼 수 있어요!</div>`;
+    el.innerHTML = `<div class="loading">경기 일정을 불러오지 못했어요. 새로고침 눌러봐!</div>`;
     return;
   }
 
