@@ -7,7 +7,7 @@ const LEAGUE_SLUGS = {
   '라리가':   'esp.1',
   '분데스리가': 'ger.1',
   '세리에A':  'ita.1',
-  'K리그':    null,    // ESPN 미지원
+  'K리그':    'kleague', // kleague.com 공식 API (별도 처리)
   'MLS':      'usa.1',
 };
 
@@ -70,12 +70,11 @@ function saveManualSonStats(data) {
   setCache('son_stats_manual', data);
 }
 
-// 리그 순위 — ESPN v2
-// 반환값: 팀 배열 | [] (데이터 없음) | null (미지원 리그)
+// 리그 순위 — ESPN v2 (K리그는 kleague.com 공식 API)
 async function fetchStandings(leagueName) {
   const slug = LEAGUE_SLUGS[leagueName];
-  if (slug === null) return null;
   if (!slug) return [];
+  if (slug === 'kleague') return fetchKLeagueStandings();
 
   const cacheKey = `standings_${slug}`;
   const cached = getCache(cacheKey);
@@ -88,6 +87,35 @@ async function fetchStandings(leagueName) {
   const data = parseStandingsJson(json);
   if (data.length) setCache(cacheKey, data);
   return data;
+}
+
+async function fetchKLeagueStandings() {
+  const cached = getCache('standings_kleague');
+  if (cached) return cached;
+
+  try {
+    const res = await fetch('/api/kleague');
+    if (!res.ok) return [];
+    const json = await res.json();
+    const league1 = json?.data?.league1 ?? [];
+    const data = league1
+      .sort((a, b) => a.rank - b.rank)
+      .map(t => ({
+        rank:   t.rank,
+        name:   t.teamName,
+        teamId: t.teamId,
+        points: t.gainPoint,
+        played: t.gameCount,
+        win:    t.winCnt,
+        draw:   t.tieCnt,
+        lose:   t.lossCnt,
+        group:  null,
+      }));
+    if (data.length) setCache('standings_kleague', data);
+    return data;
+  } catch {
+    return [];
+  }
 }
 
 function parseStandingsJson(json) {
