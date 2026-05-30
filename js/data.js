@@ -11,8 +11,9 @@ const LEAGUE_SLUGS = {
   'MLS':      'usa.1',
 };
 
-const SPURS_ID     = '367';   // Tottenham Hotspur (ESPN ID)
-const LAFC_ID      = '18966'; // Los Angeles FC (ESPN ID)
+const SPURS_ID     = '367';    // Tottenham Hotspur (ESPN ID)
+const LAFC_ID      = '18966';  // Los Angeles FC (ESPN ID)
+const SON_ESPN_ID  = '149945'; // Son Heung-Min (ESPN athlete ID)
 const SPURS_LEAGUE = 'eng.1';
 const LAFC_LEAGUE  = 'usa.1';
 
@@ -56,9 +57,42 @@ async function espnFetch(url) {
   }
 }
 
-// 손흥민 스탯 — 수동 입력 (ESPN 선수 통계 불안정)
+// 손흥민 스탯 — ESPN MLS 통계 자동, 실패 시 수동 입력 폴백
 async function fetchSonStats() {
-  return getManualSonStats();
+  const cached = getCache('son_stats');
+  if (cached) return cached;
+
+  try {
+    const url = `https://site.web.api.espn.com/apis/common/v3/sports/soccer/${LAFC_LEAGUE}/athletes/${SON_ESPN_ID}/overview`;
+    const res = await fetch(url);
+    if (!res.ok) return getManualSonStats();
+    const json = await res.json();
+
+    const stats = json.statistics ?? {};
+    const names = stats.names ?? [];
+    const splits = Array.isArray(stats.splits) ? stats.splits : [];
+
+    // MLS LAFC 시즌 스탯만 추출
+    const mlsSplit = splits.find(s =>
+      s.leagueSlug === LAFC_LEAGUE && String(s.teamId) === LAFC_ID
+    );
+    if (!mlsSplit) return getManualSonStats();
+
+    const vals = mlsSplit.stats ?? [];
+    const m = {};
+    names.forEach((name, i) => { m[name] = vals[i] ?? '—'; });
+
+    const data = {
+      goals:   m.totalGoals   ?? '—',
+      assists: m.goalAssists  ?? '—',
+      apps:    m.starts       ?? '—',
+      rating:  '—', // ESPN 미제공
+    };
+    setCache('son_stats', data);
+    return data;
+  } catch {
+    return getManualSonStats();
+  }
 }
 
 function getManualSonStats() {
