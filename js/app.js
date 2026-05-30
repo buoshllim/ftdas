@@ -141,16 +141,23 @@ async function loadStandings(league) {
     return;
   }
 
-  tbody.innerHTML = rows.map(t => `
-    <tr class="${t.teamId === SPURS_ID ? 'highlight-row' : ''}">
+  let html = '';
+  let lastGroup = null;
+  rows.forEach(t => {
+    if (t.group && t.group !== lastGroup) {
+      html += `<tr><td colspan="6" style="padding:8px 6px 4px;font-size:11px;color:var(--gold);font-weight:700;">— ${t.group} 지구 —</td></tr>`;
+      lastGroup = t.group;
+    }
+    html += `<tr class="${t.teamId === SPURS_ID ? 'highlight-row' : ''}">
       <td class="rank-num">${t.rank}</td>
       <td class="team-name">${t.name}</td>
       <td><strong>${t.points}</strong></td>
       <td>${t.win}</td>
       <td>${t.draw}</td>
       <td>${t.lose}</td>
-    </tr>
-  `).join('');
+    </tr>`;
+  });
+  tbody.innerHTML = html;
 }
 
 async function loadFixtures() {

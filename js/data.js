@@ -80,19 +80,23 @@ async function fetchStandings(leagueName) {
   if (cached) return cached;
 
   const json = await apiFetch(`/standings?league=${leagueId}&season=${SEASON}`);
-  const rows = json?.response?.[0]?.league?.standings?.[0];
-  if (!rows) return [];
+  const allGroups = json?.response?.[0]?.league?.standings;
+  if (!allGroups) return [];
 
-  const data = rows.map(t => ({
-    rank: t.rank,
-    name: t.team.name,
-    teamId: t.team.id,
-    points: t.points,
-    played: t.all.played,
-    win: t.all.win,
-    draw: t.all.draw,
-    lose: t.all.lose,
-  }));
+  // MLS 같이 동부/서부 지구가 있는 경우 모두 합치기
+  const data = allGroups.flatMap((group, groupIdx) =>
+    group.map(t => ({
+      rank: t.rank,
+      name: t.team.name,
+      teamId: t.team.id,
+      points: t.points,
+      played: t.all.played,
+      win: t.all.win,
+      draw: t.all.draw,
+      lose: t.all.lose,
+      group: allGroups.length > 1 ? (groupIdx === 0 ? '동부' : '서부') : null,
+    }))
+  );
   setCache(cacheKey, data);
   return data;
 }
