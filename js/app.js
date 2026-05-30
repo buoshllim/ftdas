@@ -44,9 +44,16 @@ let currentLeague = 'EPL';
 const REFRESH_KEY = 'ftdas_last_refresh';
 const ONE_DAY = 24 * 60 * 60 * 1000;
 
+const DEV_MODE = true; // 개발 중 — 완성 후 false로 변경
+
 function updateRefreshBtn() {
   const btn = document.getElementById('refresh-btn');
   const status = document.getElementById('refresh-status');
+  if (DEV_MODE) {
+    btn.disabled = false;
+    status.textContent = '개발 모드 (제한 없음)';
+    return;
+  }
   const last = parseInt(localStorage.getItem(REFRESH_KEY) || '0');
   const elapsed = Date.now() - last;
   const remaining = ONE_DAY - elapsed;
