@@ -1,5 +1,5 @@
 // API-Football 연동 + 로컬 캐시 (하루 1회)
-const API_KEY = ''; // API-Football 키 입력 필요
+// API 키는 Vercel 환경변수(FOOTBALL_API_KEY)로 관리 — /api/football 프록시를 통해 호출
 
 const LEAGUE_IDS = {
   'EPL': 39,
@@ -33,12 +33,13 @@ function setCache(key, data) {
 }
 
 async function apiFetch(path) {
-  if (!API_KEY) return null;
-  const res = await fetch(`https://v3.football.api-sports.io${path}`, {
-    headers: { 'x-apisports-key': API_KEY }
-  });
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    const res = await fetch(`/api/football?path=${encodeURIComponent(path)}`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
 }
 
 // 손흥민 스탯
