@@ -1,5 +1,5 @@
 // API-Football 연동 + 로컬 캐시
-// 무료 플랜: 브라우저에서 직접 호출
+// API 키는 Vercel 환경변수(FOOTBALL_API_KEY) — /api/football 프록시 경유
 
 const LEAGUE_IDS = {
   'EPL': 39,
@@ -34,14 +34,9 @@ function setCache(key, data) {
   } catch {}
 }
 
-const API_KEY = 'e63175ff1f724b0920fba2ff738b0440';
-const API_BASE = 'https://v3.football.api-sports.io';
-
 async function apiFetch(path) {
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
-      headers: { 'x-apisports-key': API_KEY },
-    });
+    const res = await fetch(`/api/football?path=${encodeURIComponent(path)}`);
     if (!res.ok) return null;
     return res.json();
   } catch {
