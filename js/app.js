@@ -79,7 +79,7 @@ async function hardRefresh() {
   localStorage.setItem(REFRESH_KEY, String(Date.now()));
   updateRefreshBtn();
 
-  await Promise.all([loadSonStats(), loadStandings(currentLeague), loadFixtures()]);
+  await Promise.all([loadSonStats(), loadStandings(currentLeague), loadSpursFixtures(), loadLafcFixtures()]);
 }
 
 async function initDataTab() {
@@ -91,7 +91,8 @@ async function initDataTab() {
 
   loadSonStats();
   loadStandings('EPL');
-  loadFixtures();
+  loadSpursFixtures();
+  loadLafcFixtures();
 
   document.querySelectorAll('.league-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -162,47 +163,49 @@ async function loadStandings(league) {
   tbody.innerHTML = html;
 }
 
-async function loadFixtures() {
-  const el = document.getElementById('fixtures-content');
-  el.innerHTML = '<div class="loading">불러오는 중...</div>';
-
-  const teams = await fetchSonFixtures();
-
-  if (!teams?.length) {
-    el.innerHTML = `<div class="loading">경기 일정을 불러오지 못했어요. 새로고침 눌러봐!</div>`;
-    return;
-  }
-
+function renderFixtures(el, data) {
   const formatDate = (dateStr) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', weekday: 'short' });
   };
 
-  el.innerHTML = teams.map(team => {
-    const fixtures = [
-      ...(team.past || []).map(f => ({ ...f, isPast: true })),
-      ...(team.next || []).map(f => ({ ...f, isPast: false })),
-    ];
-    if (!fixtures.length) return '';
+  const fixtures = [
+    ...(data.past || []).map(f => ({ ...f, isPast: true })),
+    ...(data.next || []).map(f => ({ ...f, isPast: false })),
+  ];
+
+  if (!fixtures.length) {
+    el.innerHTML = `<div class="loading">경기 일정을 불러오지 못했어요.</div>`;
+    return;
+  }
+
+  el.innerHTML = fixtures.map(f => {
+    const home = f.teams.home.name;
+    const away = f.teams.away.name;
+    const homeG = f.goals?.home ?? '';
+    const awayG = f.goals?.away ?? '';
+    const score = f.isPast ? `${homeG} - ${awayG}` : 'vs';
     return `
-      <div style="font-size:12px;color:var(--gold);font-weight:700;margin:10px 0 6px;">${team.teamName}</div>
-      ${fixtures.map(f => {
-        const home = f.teams.home.name;
-        const away = f.teams.away.name;
-        const homeG = f.goals?.home ?? '';
-        const awayG = f.goals?.away ?? '';
-        const score = f.isPast ? `${homeG} - ${awayG}` : 'vs';
-        return `
-          <div class="fixture-item">
-            <div class="fixture-date">${formatDate(f.fixture.date)}</div>
-            <div class="fixture-teams">
-              <span>${home}</span>
-              <span class="fixture-score">${score}</span>
-              <span>${away}</span>
-            </div>
-          </div>
-        `;
-      }).join('')}
+      <div class="fixture-item">
+        <div class="fixture-date">${formatDate(f.fixture.date)}</div>
+        <div class="fixture-teams">
+          <span>${home}</span>
+          <span class="fixture-score">${score}</span>
+          <span>${away}</span>
+        </div>
+      </div>
     `;
   }).join('');
+}
+
+async function loadSpursFixtures() {
+  const el = document.getElementById('spurs-fixtures-content');
+  const data = await fetchSpursFixtures();
+  renderFixtures(el, data);
+}
+
+async function loadLafcFixtures() {
+  const el = document.getElementById('lafc-fixtures-content');
+  const data = await fetchLafcFixtures();
+  renderFixtures(el, data);
 }

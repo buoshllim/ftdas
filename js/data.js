@@ -111,50 +111,46 @@ async function fetchStandings(leagueName) {
   return data;
 }
 
-// 팀 ID — 30일 캐시 (팀 ID는 잘 안 바뀜)
-async function findTeamId(name, leagueId) {
-  const cacheKey = `teamid_${name}`;
+// LAFC 팀 ID — 30일 캐시, 이름 여러 개 시도
+async function findLafcId() {
+  const cacheKey = 'teamid_lafc';
   const cached = getCache(cacheKey, THIRTY_DAYS_MS);
   if (cached) return cached;
 
-  const json = await apiFetch(`/teams?name=${encodeURIComponent(name)}&league=${leagueId}&season=${SEASON}`);
-  const id = json?.response?.[0]?.team?.id ?? null;
-  if (id) setCache(cacheKey, id);
-  return id;
+  // API-Football에서 LAFC 이름 변형들 시도
+  const names = ['Los Angeles FC', 'LAFC', 'LA FC'];
+  for (const name of names) {
+    const json = await apiFetch(`/teams?name=${encodeURIComponent(name)}&league=${LEAGUE_IDS['MLS']}`);
+    const id = json?.response?.[0]?.team?.id ?? null;
+    if (id) { setCache(cacheKey, id); return id; }
+  }
+  return null;
 }
 
-// 팀 경기 일정 — last=6으로 단일 콜, 클라이언트에서 과거/미래 분리
-async function fetchTeamFixtures(teamId, teamName) {
-  if (!teamId) return { teamName, next: [], past: [] };
+// 팀 경기 일정 — past 3 + next 3
+async function fetchTeamFixtures(teamId, cacheKey) {
+  if (!teamId) return { past: [], next: [] };
+  const cached = getCache(cacheKey);
+  if (cached) return cached;
 
-  const now = Date.now();
-  // 최근 6경기 + 다음 3경기 — 2콜 대신 last/next 각 1콜씩
   const [pastJson, nextJson] = await Promise.all([
     apiFetch(`/fixtures?team=${teamId}&season=${SEASON}&last=3`),
     apiFetch(`/fixtures?team=${teamId}&season=${SEASON}&next=3`),
   ]);
 
-  return {
-    teamName,
+  const data = {
     past: pastJson?.response ?? [],
     next: nextJson?.response ?? [],
   };
+  setCache(cacheKey, data);
+  return data;
 }
 
-// 손흥민 경기 일정 (토트넘 + LAFC) — 최대 5콜, 캐시 있으면 0콜
-async function fetchSonFixtures() {
-  const cached = getCache('son_fixtures');
-  if (cached) return cached;
+async function fetchSpursFixtures() {
+  return fetchTeamFixtures(SPURS_ID, 'spurs_fixtures');
+}
 
-  // LAFC ID는 30일 캐시라 대부분 0콜
-  const lafcId = await findTeamId('Los Angeles FC', LEAGUE_IDS['MLS']);
-
-  const [spurs, lafc] = await Promise.all([
-    fetchTeamFixtures(SPURS_ID, 'Tottenham'),
-    fetchTeamFixtures(lafcId, 'LA FC'),
-  ]);
-
-  const data = [spurs, lafc].filter(t => t.next.length || t.past.length);
-  setCache('son_fixtures', data);
-  return data;
+async function fetchLafcFixtures() {
+  const lafcId = await findLafcId();
+  return fetchTeamFixtures(lafcId, 'lafc_fixtures');
 }

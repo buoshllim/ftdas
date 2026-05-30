@@ -249,7 +249,7 @@ header {
 /* Data tab */
 .data-grid {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 1fr 2fr 1fr;
   grid-template-rows: auto auto;
   gap: 16px;
 }
@@ -350,6 +350,13 @@ header {
   grid-row: 1 / 3;
 }
 
+.fixtures-col {
+  grid-column: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .league-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -414,8 +421,7 @@ header {
 
 /* Fixtures */
 .fixtures {
-  grid-column: 1;
-  grid-row: 2;
+  /* inside .fixtures-col flex container */
 }
 
 .fixture-item {
