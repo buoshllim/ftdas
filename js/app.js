@@ -164,10 +164,11 @@ async function loadStandings(league) {
 
 async function loadFixtures() {
   const el = document.getElementById('fixtures-content');
+  el.innerHTML = '<div class="loading">불러오는 중...</div>';
 
-  const data = await fetchSpursFixtures();
+  const teams = await fetchSonFixtures();
 
-  if (!data || (!data.next?.length && !data.past?.length)) {
+  if (!teams?.length) {
     el.innerHTML = `<div class="loading">경기 일정을 불러오지 못했어요. 새로고침 눌러봐!</div>`;
     return;
   }
@@ -177,26 +178,31 @@ async function loadFixtures() {
     return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', weekday: 'short' });
   };
 
-  const allFixtures = [
-    ...(data.past || []).slice(-3).map(f => ({ ...f, isPast: true })),
-    ...(data.next || []).slice(0, 3).map(f => ({ ...f, isPast: false })),
-  ];
-
-  el.innerHTML = allFixtures.map(f => {
-    const home = f.teams.home.name;
-    const away = f.teams.away.name;
-    const homeG = f.goals?.home ?? '';
-    const awayG = f.goals?.away ?? '';
-    const score = f.isPast ? `${homeG} - ${awayG}` : 'vs';
+  el.innerHTML = teams.map(team => {
+    const fixtures = [
+      ...(team.past || []).map(f => ({ ...f, isPast: true })),
+      ...(team.next || []).map(f => ({ ...f, isPast: false })),
+    ];
+    if (!fixtures.length) return '';
     return `
-      <div class="fixture-item">
-        <div class="fixture-date">${formatDate(f.fixture.date)}</div>
-        <div class="fixture-teams">
-          <span>${home}</span>
-          <span class="fixture-score">${score}</span>
-          <span>${away}</span>
-        </div>
-      </div>
+      <div style="font-size:12px;color:var(--gold);font-weight:700;margin:10px 0 6px;">${team.teamName}</div>
+      ${fixtures.map(f => {
+        const home = f.teams.home.name;
+        const away = f.teams.away.name;
+        const homeG = f.goals?.home ?? '';
+        const awayG = f.goals?.away ?? '';
+        const score = f.isPast ? `${homeG} - ${awayG}` : 'vs';
+        return `
+          <div class="fixture-item">
+            <div class="fixture-date">${formatDate(f.fixture.date)}</div>
+            <div class="fixture-teams">
+              <span>${home}</span>
+              <span class="fixture-score">${score}</span>
+              <span>${away}</span>
+            </div>
+          </div>
+        `;
+      }).join('')}
     `;
   }).join('');
 }

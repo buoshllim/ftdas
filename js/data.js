@@ -112,18 +112,48 @@ async function fetchStandings(leagueName) {
   return data;
 }
 
-// 토트넘 경기
-async function fetchSpursFixtures() {
-  const cached = getCache('spurs_fixtures');
+// 팀 ID 검색 (LAFC 등 동적으로 찾기)
+async function findTeamId(name, leagueId, season) {
+  const cacheKey = `teamid_${name}_${season}`;
+  const cached = getCache(cacheKey);
+  if (cached !== null) return cached;
+
+  const json = await apiFetch(`/teams?name=${encodeURIComponent(name)}&league=${leagueId}&season=${season}`);
+  const id = json?.response?.[0]?.team?.id ?? null;
+  setCache(cacheKey, id);
+  return id;
+}
+
+// 팀 경기 일정 (최근 3경기 + 다음 3경기)
+async function fetchTeamFixtures(teamId, teamName, season) {
+  if (!teamId) return { teamName, next: [], past: [] };
+
+  const [nextJson, pastJson] = await Promise.all([
+    apiFetch(`/fixtures?team=${teamId}&season=${season}&next=3`),
+    apiFetch(`/fixtures?team=${teamId}&season=${season}&last=3`),
+  ]);
+
+  return {
+    teamName,
+    next: nextJson?.response ?? [],
+    past: pastJson?.response ?? [],
+  };
+}
+
+// 손흥민 팀들 경기 일정 (토트넘 + LAFC)
+async function fetchSonFixtures() {
+  const cached = getCache('son_fixtures');
   if (cached) return cached;
 
-  const json = await apiFetch(`/fixtures?team=${SPURS_ID}&season=${SEASON}&next=5`);
-  const next = json?.response ?? [];
+  // LAFC ID 동적 조회
+  const lafcId = await findTeamId('Los Angeles FC', LEAGUE_IDS['MLS'], SEASON);
 
-  const pastJson = await apiFetch(`/fixtures?team=${SPURS_ID}&season=${SEASON}&last=5`);
-  const past = pastJson?.response ?? [];
+  const [spurs, lafc] = await Promise.all([
+    fetchTeamFixtures(SPURS_ID, 'Tottenham', SEASON),
+    fetchTeamFixtures(lafcId, 'LA FC', SEASON),
+  ]);
 
-  const data = { next, past };
-  setCache('spurs_fixtures', data);
+  const data = [spurs, lafc].filter(t => t.next.length || t.past.length);
+  setCache('son_fixtures', data);
   return data;
 }
