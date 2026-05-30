@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FTDAS — Football Tactics & Data Analysis System</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="logo">⚽ FTDAS</div>
+    <div class="subtitle">Football Tactics & Data Analysis System</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="tactics">전술 보드</button>
+    <button class="tab-btn" data-tab="data">데이터 분석</button>
+  </nav>
+
+  <!-- 전술 보드 탭 -->
+  <div id="tab-tactics" class="tab-content active">
+    <div class="toolbar">
+      <div class="formation-group">
+        <label>포메이션</label>
+        <select id="formation-select">
+          <option value="">직접 배치</option>
+          <option value="4-3-3">4-3-3</option>
+          <option value="4-4-2">4-4-2</option>
+          <option value="4-2-3-1">4-2-3-1</option>
+          <option value="3-5-2">3-5-2</option>
+        </select>
+      </div>
+      <div class="team-group">
+        <label>팀</label>
+        <select id="team-select">
+          <option value="home">홈팀 (파란색)</option>
+          <option value="away">원정팀 (빨간색)</option>
+        </select>
+      </div>
+      <div class="action-group">
+        <button id="add-player-btn">+ 선수 추가</button>
+        <button id="clear-arrows-btn">화살표 지우기</button>
+        <button id="reset-btn">초기화</button>
+      </div>
+    </div>
+
+    <div class="pitch-container">
+      <canvas id="pitch-canvas"></canvas>
+    </div>
+
+    <div class="player-list-container">
+      <div id="home-players" class="player-list">
+        <h3>🔵 홈팀</h3>
+        <div id="home-list"></div>
+      </div>
+      <div id="away-players" class="player-list">
+        <h3>🔴 원정팀</h3>
+        <div id="away-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 데이터 분석 탭 -->
+  <div id="tab-data" class="tab-content">
+    <div class="data-grid">
+      <!-- 손흥민 스탯 -->
+      <div class="data-card son-stats">
+        <h2>⚽ 손흥민 시즌 스탯</h2>
+        <div id="son-stats-content" class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-value" id="son-goals">—</div>
+            <div class="stat-label">골</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="son-assists">—</div>
+            <div class="stat-label">어시스트</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="son-apps">—</div>
+            <div class="stat-label">출전</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="son-rating">—</div>
+            <div class="stat-label">평점</div>
+          </div>
+        </div>
+        <button class="edit-btn" id="son-edit-btn">✏️ 직접 입력</button>
+        <div id="son-edit-form" class="edit-form hidden">
+          <input type="number" id="input-goals" placeholder="골" min="0" />
+          <input type="number" id="input-assists" placeholder="어시스트" min="0" />
+          <input type="number" id="input-apps" placeholder="출전" min="0" />
+          <input type="number" id="input-rating" placeholder="평점 (0~10)" step="0.1" min="0" max="10" />
+          <button id="son-save-btn">저장</button>
+        </div>
+      </div>
+
+      <!-- 리그 순위 -->
+      <div class="data-card standings">
+        <h2>🏆 리그 순위</h2>
+        <div class="league-tabs">
+          <button class="league-btn active" data-league="EPL">EPL</button>
+          <button class="league-btn" data-league="라리가">라리가</button>
+          <button class="league-btn" data-league="분데스리가">분데스리가</button>
+          <button class="league-btn" data-league="세리에A">세리에A</button>
+          <button class="league-btn" data-league="K리그">K리그</button>
+          <button class="league-btn" data-league="MLS">MLS</button>
+        </div>
+        <div id="standings-content">
+          <table id="standings-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>팀</th>
+                <th>승점</th>
+                <th>승</th>
+                <th>무</th>
+                <th>패</th>
+              </tr>
+            </thead>
+            <tbody id="standings-body">
+              <tr><td colspan="6" class="loading">불러오는 중...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 토트넘 경기 일정 -->
+      <div class="data-card fixtures">
+        <h2>📅 토트넘 경기</h2>
+        <div id="fixtures-content">
+          <div class="loading">불러오는 중...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/tactical-board.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
