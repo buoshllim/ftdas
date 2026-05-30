@@ -23,6 +23,7 @@ body {
   color: var(--white);
   font-family: 'Segoe UI', sans-serif;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 header {
@@ -149,6 +150,7 @@ header {
   border-radius: 10px;
   cursor: crosshair;
   max-width: 100%;
+  touch-action: pan-y;
 }
 
 /* Player list */

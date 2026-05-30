@@ -75,7 +75,8 @@ class TacticalBoard {
   }
 
   resize() {
-    const maxW = Math.min(window.innerWidth - 32, 680);
+    const container = this.canvas.parentElement;
+    const maxW = Math.min(container ? container.clientWidth : window.innerWidth - 32, 680);
     const ratio = 1.5;
     this.canvas.width = maxW;
     this.canvas.height = maxW / ratio;
@@ -305,11 +306,12 @@ class TacticalBoard {
 
   bindEvents() {
     const onDown = (e) => {
-      e.preventDefault();
+      if (e.touches && e.touches.length > 1) return; // 핀치줌 허용
       const { x, y } = this.getPos(e);
       const p = this.getPlayerAt(x, y);
       if (p) {
-        if (e.shiftKey || e.type === 'touchstart' && e.touches.length === 2) {
+        e.preventDefault();
+        if (e.shiftKey) {
           this.drawingArrow = { fromId: p.id, fx: p.x * this.W, fy: p.y * this.H, tx: x, ty: y };
         } else {
           this.dragging = p;
@@ -318,15 +320,17 @@ class TacticalBoard {
     };
 
     const onMove = (e) => {
-      e.preventDefault();
-      const { x, y } = this.getPos(e);
-      if (this.dragging) {
-        this.dragging.x = Math.max(0, Math.min(1, x / this.W));
-        this.dragging.y = Math.max(0, Math.min(1, y / this.H));
-        this.render();
-      } else if (this.drawingArrow) {
-        this.drawingArrow.tx = x;
-        this.drawingArrow.ty = y;
+      if (e.touches && e.touches.length > 1) return; // 핀치줌 허용
+      if (this.dragging || this.drawingArrow) {
+        e.preventDefault();
+        const { x, y } = this.getPos(e);
+        if (this.dragging) {
+          this.dragging.x = Math.max(0, Math.min(1, x / this.W));
+          this.dragging.y = Math.max(0, Math.min(1, y / this.H));
+        } else {
+          this.drawingArrow.tx = x;
+          this.drawingArrow.ty = y;
+        }
         this.render();
       }
     };
