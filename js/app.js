@@ -41,9 +41,46 @@ board.applyFormation('4-3-3', 'home');
 let dataInitialized = false;
 let currentLeague = 'EPL';
 
+const REFRESH_KEY = 'ftdas_last_refresh';
+const ONE_DAY = 24 * 60 * 60 * 1000;
+
+function updateRefreshBtn() {
+  const btn = document.getElementById('refresh-btn');
+  const status = document.getElementById('refresh-status');
+  const last = parseInt(localStorage.getItem(REFRESH_KEY) || '0');
+  const elapsed = Date.now() - last;
+  const remaining = ONE_DAY - elapsed;
+
+  if (last && remaining > 0) {
+    btn.disabled = true;
+    const h = Math.floor(remaining / 3600000);
+    const m = Math.floor((remaining % 3600000) / 60000);
+    status.textContent = `다음 새로고침까지 ${h}시간 ${m}분`;
+  } else {
+    btn.disabled = false;
+    status.textContent = last ? '새로고침 가능!' : '';
+  }
+}
+
+async function hardRefresh() {
+  // Clear all API caches
+  Object.keys(localStorage).forEach(k => {
+    if (k.startsWith('ftdas_') && k !== 'ftdas_last_refresh' && k !== 'ftdas_son_stats_manual') {
+      localStorage.removeItem(k);
+    }
+  });
+  localStorage.setItem(REFRESH_KEY, String(Date.now()));
+  updateRefreshBtn();
+
+  await Promise.all([loadSonStats(), loadStandings(currentLeague), loadFixtures()]);
+}
+
 async function initDataTab() {
   if (dataInitialized) return;
   dataInitialized = true;
+
+  updateRefreshBtn();
+  document.getElementById('refresh-btn').addEventListener('click', hardRefresh);
 
   loadSonStats();
   loadStandings('EPL');
