@@ -10,8 +10,9 @@ const LEAGUE_IDS = {
   'MLS': 253,
 };
 
-const SPURS_ID = 47;
-const SON_ID = 186; // Heung-min Son, Korea Republic
+const SPURS_ID = 47;  // Tottenham, England
+const LAFC_ID = 1616; // Los Angeles FC, USA
+const SON_ID = 186;   // Heung-min Son, Korea Republic
 const SEASON = 2025;
 const SEASON_FALLBACK = 2024;
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -117,21 +118,6 @@ async function fetchStandings(leagueName) {
   return data;
 }
 
-// LAFC 팀 ID — 30일 캐시, 이름 여러 개 시도
-async function findLafcId() {
-  const cacheKey = 'teamid_lafc';
-  const cached = getCache(cacheKey, THIRTY_DAYS_MS);
-  if (cached) return cached;
-
-  // API-Football에서 LAFC 이름 변형들 시도
-  const names = ['Los Angeles FC', 'LAFC', 'LA FC'];
-  for (const name of names) {
-    const json = await apiFetch(`/teams?name=${encodeURIComponent(name)}&league=${LEAGUE_IDS['MLS']}`);
-    const id = json?.response?.[0]?.team?.id ?? null;
-    if (id) { setCache(cacheKey, id); return id; }
-  }
-  return null;
-}
 
 // 팀 경기 일정 — past 3 + next 3
 async function fetchTeamFixtures(teamId, cacheKey) {
@@ -157,6 +143,5 @@ async function fetchSpursFixtures() {
 }
 
 async function fetchLafcFixtures() {
-  const lafcId = await findLafcId();
-  return fetchTeamFixtures(lafcId, 'lafc_fixtures');
+  return fetchTeamFixtures(LAFC_ID, 'lafc_fixtures');
 }
