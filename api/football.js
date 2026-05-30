@@ -1,26 +1,15 @@
+// ESPN unofficial API proxy — no API key required
 module.exports = async function handler(req, res) {
-  const apiKey = process.env.FOOTBALL_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured' });
-  }
-
   const path = req.query.path;
   if (!path) {
     return res.status(400).json({ error: 'path required' });
   }
 
-  const url = `https://v3.football.api-sports.io${path}`;
+  const url = `https://site.api.espn.com/apis/site/v2/sports/soccer${path}`;
 
   try {
-    const response = await fetch(url, {
-      headers: {
-        'x-apisports-key': apiKey,
-        'Origin': 'https://ftdas.vercel.app',
-        'Referer': 'https://ftdas.vercel.app/',
-      },
-    });
+    const response = await fetch(url);
     const data = await response.json();
-    // KST 자정까지 남은 초로 캐시 설정 (midnight KST = 15:00 UTC)
     const now = new Date();
     const nextMidnightKST = new Date();
     nextMidnightKST.setUTCHours(15, 0, 0, 0);

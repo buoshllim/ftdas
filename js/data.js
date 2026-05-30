@@ -1,22 +1,22 @@
-// API-Football 연동 + 로컬 캐시
-// API 키는 Vercel 환경변수(FOOTBALL_API_KEY) — /api/football 프록시 경유
+// ESPN unofficial API — no API key required
+// Proxy via /api/football for server-side KST-day caching
 
-const LEAGUE_IDS = {
-  'EPL': 39,
-  '라리가': 140,
-  '분데스리가': 78,
-  '세리에A': 135,
-  'K리그': 292,
-  'MLS': 253,
+const LEAGUE_SLUGS = {
+  'EPL':    'eng.1',
+  '라리가':  'esp.1',
+  '분데스리가': 'ger.1',
+  '세리에A': 'ita.1',
+  'K리그':   'kor.1',
+  'MLS':    'usa.1',
 };
 
-const SPURS_ID = 47;  // Tottenham, England
-const LAFC_ID = 1616; // Los Angeles FC, USA
-const SON_ID = 186;   // Heung-min Son, Korea Republic
-const SEASON = 2025;
-const SEASON_FALLBACK = 2024;
+const SPURS_ID  = '367';   // Tottenham Hotspur (ESPN)
+const LAFC_ID   = '18966'; // Los Angeles FC (ESPN)
+const SPURS_LEAGUE = 'eng.1';
+const LAFC_LEAGUE  = 'usa.1';
+
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
-const KST_OFFSET = 9 * 60 * 60 * 1000; // UTC+9
+const KST_OFFSET = 9 * 60 * 60 * 1000;
 
 function todayKST() {
   return new Date(Date.now() + KST_OFFSET).toISOString().slice(0, 10);
@@ -55,25 +55,9 @@ async function apiFetch(path) {
   }
 }
 
-// 손흥민 스탯 — ID 186으로 직접 조회
+// 손흥민 스탯 — ESPN 선수 통계가 불안정해서 수동 입력 우선
 async function fetchSonStats() {
-  const cached = getCache('son_stats');
-  if (cached) return cached;
-
-  let json = await apiFetch(`/players?id=${SON_ID}&season=${SEASON}`);
-  if (!json?.response?.[0]) json = await apiFetch(`/players?id=${SON_ID}&season=${SEASON_FALLBACK}`);
-  const player = json?.response?.[0];
-  if (!player) return getManualSonStats();
-
-  const s = player.statistics[0];
-  const data = {
-    goals: s.goals.total ?? '—',
-    assists: s.goals.assists ?? '—',
-    apps: s.games.appearences ?? '—',
-    rating: s.games.rating ? parseFloat(s.games.rating).toFixed(1) : '—',
-  };
-  setCache('son_stats', data);
-  return data;
+  return getManualSonStats();
 }
 
 function getManualSonStats() {
@@ -85,63 +69,102 @@ function saveManualSonStats(data) {
   setCache('son_stats_manual', data);
 }
 
-// 리그 순위 — 1 API 콜 (폴백 시 최대 2콜, 캐시 있으면 0콜)
+// 리그 순위 — ESPN standings
 async function fetchStandings(leagueName) {
-  const leagueId = LEAGUE_IDS[leagueName];
-  if (!leagueId) return [];
+  const slug = LEAGUE_SLUGS[leagueName];
+  if (!slug) return [];
 
-  const cacheKey = `standings_${leagueId}`;
+  const cacheKey = `standings_${slug}`;
   const cached = getCache(cacheKey);
   if (cached) return cached;
 
-  let json = await apiFetch(`/standings?league=${leagueId}&season=${SEASON}`);
-  if (!json?.response?.[0]?.league?.standings) {
-    json = await apiFetch(`/standings?league=${leagueId}&season=${SEASON_FALLBACK}`);
-  }
-  const allGroups = json?.response?.[0]?.league?.standings;
-  if (!allGroups) return [];
+  const json = await apiFetch(`/${slug}/standings`);
+  if (!json) return [];
 
-  const data = allGroups.flatMap((group, groupIdx) =>
-    group.map(t => ({
-      rank: t.rank,
-      name: t.team.name,
-      teamId: t.team.id,
-      points: t.points,
-      played: t.all.played,
-      win: t.all.win,
-      draw: t.all.draw,
-      lose: t.all.lose,
-      group: allGroups.length > 1 ? (groupIdx === 0 ? '동부' : '서부') : null,
-    }))
-  );
-  setCache(cacheKey, data);
+  const data = parseStandingsJson(json);
+  if (data.length) setCache(cacheKey, data);
   return data;
 }
 
+function parseStandingsJson(json) {
+  const s = json?.standings;
+  if (!s) return [];
 
-// 팀 경기 일정 — past 3 + next 3
-async function fetchTeamFixtures(teamId, cacheKey) {
+  // MLS 등 컨퍼런스 분리 리그
+  if (s.groups?.length > 0) {
+    return s.groups.flatMap(group => {
+      const groupName = /east/i.test(group.name) ? '동부'
+                      : /west/i.test(group.name) ? '서부'
+                      : group.name ?? null;
+      const entries = group.standings?.entries ?? group.entries ?? [];
+      return entries.map((e, i) => parseEntry(e, groupName, i + 1));
+    });
+  }
+
+  // 단일 그룹
+  const entries = s.entries ?? [];
+  return entries.map((e, i) => parseEntry(e, null, i + 1));
+}
+
+function parseEntry(entry, group, fallbackRank) {
+  const stats = {};
+  (entry.stats ?? []).forEach(s => { stats[s.name] = s.value; });
+  return {
+    rank:   stats.rank ?? fallbackRank ?? 0,
+    name:   entry.team?.displayName ?? '—',
+    teamId: entry.team?.id,
+    points: stats.points ?? 0,
+    played: stats.gamesPlayed ?? 0,
+    win:    stats.wins ?? 0,
+    draw:   stats.ties ?? 0,
+    lose:   stats.losses ?? 0,
+    group,
+  };
+}
+
+// 팀 경기 일정 — ESPN team schedule (past 3 + next 3)
+async function fetchTeamFixtures(league, teamId, cacheKey) {
   if (!teamId) return { past: [], next: [] };
   const cached = getCache(cacheKey);
   if (cached) return cached;
 
-  const [pastJson, nextJson] = await Promise.all([
-    apiFetch(`/fixtures?team=${teamId}&season=${SEASON}&last=3`),
-    apiFetch(`/fixtures?team=${teamId}&season=${SEASON}&next=3`),
-  ]);
+  const json = await apiFetch(`/${league}/teams/${teamId}/schedule`);
+  if (!json?.events) return { past: [], next: [] };
 
-  const data = {
-    past: pastJson?.response ?? [],
-    next: nextJson?.response ?? [],
-  };
+  const now = Date.now();
+  const events = json.events.map(e => {
+    const comp = e.competitions?.[0];
+    const isCompleted = comp?.status?.type?.completed === true;
+    const home = comp?.competitors?.find(c => c.homeAway === 'home');
+    const away = comp?.competitors?.find(c => c.homeAway === 'away');
+    return {
+      fixture: { date: e.date },
+      teams: {
+        home: { name: home?.team?.displayName ?? '—' },
+        away: { name: away?.team?.displayName ?? '—' },
+      },
+      goals: isCompleted ? {
+        home: home?.score ?? '0',
+        away: away?.score ?? '0',
+      } : null,
+      _ts: new Date(e.date).getTime(),
+    };
+  });
+
+  const past = events.filter(e => e._ts < now).slice(-3);
+  const next = events.filter(e => e._ts >= now).slice(0, 3);
+  // _ts는 렌더링에 불필요하므로 제거
+  const clean = arr => arr.map(({ _ts, ...rest }) => rest);
+
+  const data = { past: clean(past), next: clean(next) };
   setCache(cacheKey, data);
   return data;
 }
 
 async function fetchSpursFixtures() {
-  return fetchTeamFixtures(SPURS_ID, 'spurs_fixtures');
+  return fetchTeamFixtures(SPURS_LEAGUE, SPURS_ID, 'spurs_fixtures');
 }
 
 async function fetchLafcFixtures() {
-  return fetchTeamFixtures(LAFC_ID, 'lafc_fixtures');
+  return fetchTeamFixtures(LAFC_LEAGUE, LAFC_ID, 'lafc_fixtures');
 }
