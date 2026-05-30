@@ -1,14 +1,24 @@
-// ESPN unofficial API proxy — no API key required
+// api-football via RapidAPI — set FOOTBALL_API_KEY in Vercel env vars
 module.exports = async function handler(req, res) {
+  const apiKey = process.env.FOOTBALL_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'API key not configured' });
+  }
+
   const path = req.query.path;
   if (!path) {
     return res.status(400).json({ error: 'path required' });
   }
 
-  const url = `https://site.api.espn.com/apis/site/v2/sports/soccer${path}`;
+  const url = `https://api-football-v1.p.rapidapi.com/v3${path}`;
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'x-rapidapi-key': apiKey,
+        'x-rapidapi-host': 'api-football-v1.p.rapidapi.com',
+      },
+    });
     const data = await response.json();
     const now = new Date();
     const nextMidnightKST = new Date();
