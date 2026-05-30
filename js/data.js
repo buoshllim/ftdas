@@ -11,6 +11,7 @@ const LEAGUE_IDS = {
 };
 
 const SPURS_ID = 47;
+const SON_ID = 186; // Heung-min Son, Korea Republic
 const SEASON = 2025;
 const SEASON_FALLBACK = 2024;
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -53,18 +54,14 @@ async function apiFetch(path) {
   }
 }
 
-// 손흥민 스탯 — 1 API 콜 (2025 먼저, 응답 내 결과 없으면 2024 재시도)
+// 손흥민 스탯 — ID 186으로 직접 조회
 async function fetchSonStats() {
   const cached = getCache('son_stats');
   if (cached) return cached;
 
-  const findSon = (json) => json?.response?.find(p =>
-    p.player.lastname?.toLowerCase().includes('son') &&
-    p.player.firstname?.toLowerCase().includes('heung')
-  );
-
-  let player = findSon(await apiFetch(`/players?search=Heung-Min&season=${SEASON}`));
-  if (!player) player = findSon(await apiFetch(`/players?search=Heung-Min&season=${SEASON_FALLBACK}`));
+  let json = await apiFetch(`/players?id=${SON_ID}&season=${SEASON}`);
+  if (!json?.response?.[0]) json = await apiFetch(`/players?id=${SON_ID}&season=${SEASON_FALLBACK}`);
+  const player = json?.response?.[0];
   if (!player) return getManualSonStats();
 
   const s = player.statistics[0];
