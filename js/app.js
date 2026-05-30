@@ -139,6 +139,10 @@ async function loadStandings(league) {
 
   const rows = await fetchStandings(league);
 
+  if (rows === null) {
+    tbody.innerHTML = `<tr><td colspan="6" class="loading">ESPN에서 지원하지 않는 리그예요.</td></tr>`;
+    return;
+  }
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="6" class="loading">데이터를 불러오지 못했어요. 새로고침 눌러봐!</td></tr>`;
     return;
