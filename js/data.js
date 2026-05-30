@@ -42,17 +42,19 @@ async function apiFetch(path) {
   }
 }
 
-// 손흥민 스탯 — 이름 검색으로 ID에 의존하지 않음
+// 손흥민 스탯 — 이름으로만 검색 (팀 이적해도 찾을 수 있게)
 async function fetchSonStats() {
   const cached = getCache('son_stats');
   if (cached) return cached;
 
-  // 토트넘 스쿼드에서 "Son" 검색
-  const json = await apiFetch(`/players?search=Son&team=${SPURS_ID}&season=${SEASON}`);
-  const player = json?.response?.find(p =>
-    p.player.lastname.toLowerCase().includes('son') ||
-    p.player.firstname.toLowerCase().includes('heung')
+  const findSon = (json) => json?.response?.find(p =>
+    p.player.lastname?.toLowerCase().includes('son') &&
+    p.player.firstname?.toLowerCase().includes('heung')
   );
+
+  // 2025 시즌 먼저, 없으면 2024 폴백
+  let player = findSon(await apiFetch(`/players?search=Heung-Min&season=${SEASON}`));
+  if (!player) player = findSon(await apiFetch(`/players?search=Heung-Min&season=${SEASON_FALLBACK}`));
   if (!player) return getManualSonStats();
 
   const s = player.statistics[0];
