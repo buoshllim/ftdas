@@ -100,7 +100,7 @@ function renderSeasonSelector(leagueName) {
 function renderSonSeasonSelector() {
   const el = document.getElementById('son-season-selector');
   const def = defaultSeason('MLS');
-  const seasons = [def - 1, def];
+  const seasons = [def];
 
   el.innerHTML = seasons.map(s => {
     const ended = isSeasonComplete('MLS', s);

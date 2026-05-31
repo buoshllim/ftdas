@@ -385,8 +385,7 @@ header {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 14px;
-  min-height: 10px;
+  align-items: center;
 }
 
 .season-btn {
