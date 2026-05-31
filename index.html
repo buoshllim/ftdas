@@ -20,27 +20,36 @@
   <!-- 전술 보드 탭 -->
   <div id="tab-tactics" class="tab-content active">
     <div class="toolbar">
-      <div class="formation-group">
-        <label>포메이션</label>
-        <select id="formation-select">
+      <div class="team-section home-section">
+        <span class="team-label">🔵 홈팀</span>
+        <select id="home-formation-select" class="formation-select">
+          <option value="">직접 배치</option>
+          <option value="4-3-3" selected>4-3-3</option>
+          <option value="4-4-2">4-4-2</option>
+          <option value="4-2-3-1">4-2-3-1</option>
+          <option value="3-5-2">3-5-2</option>
+        </select>
+        <button id="home-add-btn" class="add-btn">+ 선수추가</button>
+        <button id="home-reset-btn" class="toolbar-btn">초기화</button>
+      </div>
+      <div class="toolbar-divider"></div>
+      <div class="team-section away-section">
+        <span class="team-label">🔴 원정팀</span>
+        <select id="away-formation-select" class="formation-select">
           <option value="">직접 배치</option>
           <option value="4-3-3">4-3-3</option>
           <option value="4-4-2">4-4-2</option>
           <option value="4-2-3-1">4-2-3-1</option>
           <option value="3-5-2">3-5-2</option>
         </select>
+        <button id="away-add-btn" class="add-btn">+ 선수추가</button>
+        <button id="away-reset-btn" class="toolbar-btn">초기화</button>
       </div>
-      <div class="team-group">
-        <label>팀</label>
-        <select id="team-select">
-          <option value="home">홈팀 (파란색)</option>
-          <option value="away">원정팀 (빨간색)</option>
-        </select>
-      </div>
-      <div class="action-group">
-        <button id="add-player-btn">+ 선수 추가</button>
-        <button id="clear-arrows-btn">화살표 지우기</button>
-        <button id="reset-btn">초기화</button>
+      <div class="toolbar-divider"></div>
+      <div class="mode-section">
+        <button id="mode-move-btn" class="mode-btn active">🚶 이동</button>
+        <button id="mode-arrow-btn" class="mode-btn">→ 화살표</button>
+        <button id="clear-arrows-btn" class="toolbar-btn">🗑 화살표 지우기</button>
       </div>
     </div>
 

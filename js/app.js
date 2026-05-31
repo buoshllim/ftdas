@@ -12,29 +12,51 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // Tactical Board
 const board = new TacticalBoard('pitch-canvas');
 
-document.getElementById('formation-select').addEventListener('change', e => {
-  if (e.target.value) {
-    const team = document.getElementById('team-select').value;
-    board.applyFormation(e.target.value, team);
-  }
+// Home team
+document.getElementById('home-formation-select').addEventListener('change', e => {
+  if (e.target.value) board.applyFormation(e.target.value, 'home');
+});
+document.getElementById('home-add-btn').addEventListener('click', () => {
+  const count = board.players.filter(p => p.team === 'home').length + 1;
+  board.addPlayer('home', count, 'CM', 0.5, 0.5);
+});
+document.getElementById('home-reset-btn').addEventListener('click', () => {
+  if (confirm('홈팀을 초기화할까요?')) board.resetTeam('home');
 });
 
-document.getElementById('add-player-btn').addEventListener('click', () => {
-  const team = document.getElementById('team-select').value;
-  const count = board.players.filter(p => p.team === team).length + 1;
-  board.addPlayer(team, count, 'CM', 0.5, 0.5);
+// Away team
+document.getElementById('away-formation-select').addEventListener('change', e => {
+  if (e.target.value) board.applyFormation(e.target.value, 'away');
+});
+document.getElementById('away-add-btn').addEventListener('click', () => {
+  const count = board.players.filter(p => p.team === 'away').length + 1;
+  board.addPlayer('away', count, 'CM', 0.5, 0.5);
+});
+document.getElementById('away-reset-btn').addEventListener('click', () => {
+  if (confirm('원정팀을 초기화할까요?')) board.resetTeam('away');
+});
+
+// Mode toggle
+const moveModeBtn = document.getElementById('mode-move-btn');
+const arrowModeBtn = document.getElementById('mode-arrow-btn');
+moveModeBtn.addEventListener('click', () => {
+  board.setMode('move');
+  moveModeBtn.classList.add('active');
+  arrowModeBtn.classList.remove('active');
+});
+arrowModeBtn.addEventListener('click', () => {
+  board.setMode('arrow');
+  arrowModeBtn.classList.add('active');
+  moveModeBtn.classList.remove('active');
 });
 
 document.getElementById('clear-arrows-btn').addEventListener('click', () => {
   board.clearArrows();
 });
 
-document.getElementById('reset-btn').addEventListener('click', () => {
-  if (confirm('전술 보드를 초기화할까요?')) board.reset();
-});
-
-// Apply default formation on load
+// Apply default formations on load
 board.applyFormation('4-3-3', 'home');
+board.applyFormation('4-4-2', 'away');
 
 // --- Data Tab ---
 

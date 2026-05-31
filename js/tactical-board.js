@@ -69,6 +69,7 @@ class TacticalBoard {
     this.drawingArrow = null;
     this.nextId = 1;
 
+    this.mode = 'move'; // 'move' | 'arrow'
     this.resize();
     window.addEventListener('resize', () => this.resize());
     this.bindEvents();
@@ -297,7 +298,7 @@ class TacticalBoard {
 
   getPos(e) {
     const rect = this.canvas.getBoundingClientRect();
-    const src = e.touches ? e.touches[0] : e;
+    const src = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]) || e;
     return {
       x: src.clientX - rect.left,
       y: src.clientY - rect.top,
@@ -305,22 +306,27 @@ class TacticalBoard {
   }
 
   bindEvents() {
+    let tapStart = null;
+
     const onDown = (e) => {
-      if (e.touches && e.touches.length > 1) return; // 핀치줌 허용
+      if (e.touches && e.touches.length > 1) return;
       const { x, y } = this.getPos(e);
       const p = this.getPlayerAt(x, y);
-      if (p) {
-        e.preventDefault();
-        if (e.shiftKey) {
+
+      if (this.mode === 'move') {
+        if (p) { e.preventDefault(); this.dragging = p; }
+      } else {
+        if (p) {
+          e.preventDefault();
           this.drawingArrow = { fromId: p.id, fx: p.x * this.W, fy: p.y * this.H, tx: x, ty: y };
         } else {
-          this.dragging = p;
+          tapStart = { x, y };
         }
       }
     };
 
     const onMove = (e) => {
-      if (e.touches && e.touches.length > 1) return; // 핀치줌 허용
+      if (e.touches && e.touches.length > 1) return;
       if (this.dragging || this.drawingArrow) {
         e.preventDefault();
         const { x, y } = this.getPos(e);
@@ -336,17 +342,31 @@ class TacticalBoard {
     };
 
     const onUp = (e) => {
-      if (this.drawingArrow) {
-        const { x, y } = this.getPos(e);
-        this.arrows.push({
-          fromId: this.drawingArrow.fromId,
-          tx: x / this.W,
-          ty: y / this.H,
-        });
+      const { x, y } = this.getPos(e);
+      let needsRender = false;
+
+      if (this.mode === 'move' && this.dragging) {
+        if (x < 0 || x > this.W || y < 0 || y > this.H) {
+          this.removePlayer(this.dragging.id); // render 내부 호출
+        }
+      } else if (this.drawingArrow) {
+        const dist = Math.sqrt((x - this.drawingArrow.fx) ** 2 + (y - this.drawingArrow.fy) ** 2);
+        if (dist > 15) {
+          this.arrows.push({ fromId: this.drawingArrow.fromId, tx: x / this.W, ty: y / this.H });
+        }
         this.drawingArrow = null;
-        this.render();
+        needsRender = true;
+      } else if (tapStart) {
+        const moved = Math.sqrt((x - tapStart.x) ** 2 + (y - tapStart.y) ** 2);
+        if (moved < 8) {
+          const idx = this.getArrowAt(x, y);
+          if (idx !== -1) { this.arrows.splice(idx, 1); needsRender = true; }
+        }
+        tapStart = null;
       }
+
       this.dragging = null;
+      if (needsRender) this.render();
     };
 
     this.canvas.addEventListener('mousedown', onDown);
@@ -357,17 +377,44 @@ class TacticalBoard {
     this.canvas.addEventListener('touchend', onUp);
   }
 
+  setMode(mode) {
+    this.mode = mode;
+    this.canvas.style.cursor = mode === 'arrow' ? 'crosshair' : 'default';
+  }
+
+  resetTeam(team) {
+    this.arrows = this.arrows.filter(a => {
+      const from = this.players.find(p => p.id === a.fromId);
+      return from && from.team !== team;
+    });
+    this.players = this.players.filter(p => p.team !== team);
+    this.renderPlayerList();
+    this.render();
+  }
+
   clearArrows() {
     this.arrows = [];
     this.render();
   }
 
-  reset() {
-    this.players = [];
-    this.arrows = [];
-    this.nextId = 1;
-    this.renderPlayerList();
-    this.render();
+  distToSegment(px, py, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return Math.sqrt((px - ax) ** 2 + (py - ay) ** 2);
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+    return Math.sqrt((px - (ax + t * dx)) ** 2 + (py - (ay + t * dy)) ** 2);
+  }
+
+  getArrowAt(x, y) {
+    for (let i = this.arrows.length - 1; i >= 0; i--) {
+      const arrow = this.arrows[i];
+      const from = this.players.find(p => p.id === arrow.fromId);
+      if (!from) continue;
+      const fx = from.x * this.W, fy = from.y * this.H;
+      const tx = arrow.tx * this.W, ty = arrow.ty * this.H;
+      if (this.distToSegment(x, y, fx, fy, tx, ty) < 10) return i;
+    }
+    return -1;
   }
 
   renderPlayerList() {
