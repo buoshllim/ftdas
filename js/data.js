@@ -7,6 +7,7 @@ const LEAGUE_SLUGS = {
   '라리가':   'esp.1',
   '분데스리가': 'ger.1',
   '세리에A':  'ita.1',
+  'UCL':      'uefa.champions',
   'K리그':    'kleague', // kleague.com 공식 API (별도 처리)
   'MLS':      'usa.1',
 };
@@ -18,10 +19,15 @@ const SPURS_LEAGUE = 'eng.1';
 const LAFC_LEAGUE  = 'usa.1';
 
 // MLS Cup 우승팀 ESPN ID — 챔피언 결정 후 추가
-// 예: 2025: '18966'  (LAFC가 우승했을 경우)
 const MLS_CUP_CHAMPIONS = {
   // 2025: '...',
   // 2026: '...',
+};
+
+// UCL 우승팀 ESPN ID — 시즌 종료 후 추가
+const UCL_CHAMPIONS = {
+  // 2024: '...', // 2024-25 UCL 우승팀 ID
+  2025: '160',   // 2025-26 UCL 챔피언: Paris Saint-Germain (승부차기)
 };
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
