@@ -196,14 +196,20 @@ async function loadStandings(league) {
   const mlsCupId = MLS_CUP_CHAMPIONS[currentSeason];
   const uclChampId = UCL_CHAMPIONS[currentSeason];
 
-  // UCL 챔피언 배너
+  // 챔피언 배너 (UCL / MLS Cup)
   const banner = document.getElementById('champion-banner');
   if (league === 'UCL' && uclChampId && completed) {
     const champTeam = rows.find(t => String(t.teamId) === String(uclChampId));
     if (champTeam) {
       banner.textContent = `🏆 ${seasonYearToLabel(league, currentSeason)} UCL 챔피언: ${champTeam.name}`;
       banner.classList.remove('hidden');
-    }
+    } else { banner.classList.add('hidden'); }
+  } else if (league === 'MLS' && mlsCupId && completed) {
+    const champTeam = rows.find(t => String(t.teamId) === String(mlsCupId));
+    if (champTeam) {
+      banner.textContent = `🏆 ${currentSeason} MLS Cup 챔피언: ${champTeam.name}`;
+      banner.classList.remove('hidden');
+    } else { banner.classList.add('hidden'); }
   } else {
     banner.classList.add('hidden');
   }
@@ -216,9 +222,10 @@ async function loadStandings(league) {
       lastGroup = t.group;
     }
     const isLeagueChamp = showTrophy && t.rank === 1;
+    const isDivisionChamp = completed && hasGroups && t.rank === 1;
     const isMlsCup = league === 'MLS' && mlsCupId && String(t.teamId) === String(mlsCupId);
     const isUclChamp = league === 'UCL' && uclChampId && String(t.teamId) === String(uclChampId);
-    const trophy = isLeagueChamp || isMlsCup || isUclChamp ? '🏆 ' : '';
+    const trophy = isLeagueChamp || isMlsCup || isUclChamp ? '🏆 ' : (isDivisionChamp ? '⭐ ' : '');
     html += `<tr>
       <td class="rank-num">${t.rank}</td>
       <td class="team-name">${trophy}${t.name}</td>

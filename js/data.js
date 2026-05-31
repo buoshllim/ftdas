@@ -20,8 +20,7 @@ const LAFC_LEAGUE  = 'usa.1';
 
 // MLS Cup 우승팀 ESPN ID — 챔피언 결정 후 추가
 const MLS_CUP_CHAMPIONS = {
-  // 2025: '...',
-  // 2026: '...',
+  2025: '20232',  // 2025 MLS Cup 챔피언: Inter Miami CF (3-1 vs Vancouver, 메시 MVP)
 };
 
 // UCL 우승팀 ESPN ID — 시즌 종료 후 추가
