@@ -83,10 +83,9 @@ async function fetchSonStats() {
     names.forEach((name, i) => { m[name] = vals[i] ?? '—'; });
 
     const data = {
-      goals:   m.totalGoals   ?? '—',
-      assists: m.goalAssists  ?? '—',
-      apps:    m.starts       ?? '—',
-      rating:  '—', // ESPN 미제공
+      goals:   m.totalGoals  ?? '—',
+      assists: m.goalAssists ?? '—',
+      apps:    m.starts      ?? '—',
     };
     setCache('son_stats', data);
     return data;
@@ -97,7 +96,7 @@ async function fetchSonStats() {
 
 function getManualSonStats() {
   const cached = getCache('son_stats_manual', THIRTY_DAYS_MS);
-  return cached ?? { goals: '—', assists: '—', apps: '—', rating: '—' };
+  return cached ?? { goals: '—', assists: '—', apps: '—' };
 }
 
 function saveManualSonStats(data) {

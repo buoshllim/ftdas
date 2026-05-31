@@ -113,7 +113,6 @@ async function initDataTab() {
       goals: document.getElementById('input-goals').value || '—',
       assists: document.getElementById('input-assists').value || '—',
       apps: document.getElementById('input-apps').value || '—',
-      rating: document.getElementById('input-rating').value || '—',
     };
     saveManualSonStats(data);
     renderSonStats(data);
@@ -130,7 +129,6 @@ function renderSonStats(data) {
   document.getElementById('son-goals').textContent = data.goals;
   document.getElementById('son-assists').textContent = data.assists;
   document.getElementById('son-apps').textContent = data.apps;
-  document.getElementById('son-rating').textContent = data.rating;
 }
 
 async function loadStandings(league) {
