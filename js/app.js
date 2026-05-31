@@ -21,7 +21,7 @@ document.getElementById('home-add-btn').addEventListener('click', () => {
   board.addPlayer('home', count, 'CM', 0.5, 0.5);
 });
 document.getElementById('home-reset-btn').addEventListener('click', () => {
-  if (confirm('홈팀을 초기화할까요?')) board.resetTeam('home');
+  if (confirm('홈팀 작업을 모두 Reset 할까요?')) board.resetTeam('home');
 });
 
 // Away team
@@ -33,7 +33,7 @@ document.getElementById('away-add-btn').addEventListener('click', () => {
   board.addPlayer('away', count, 'CM', 0.5, 0.5);
 });
 document.getElementById('away-reset-btn').addEventListener('click', () => {
-  if (confirm('원정팀을 초기화할까요?')) board.resetTeam('away');
+  if (confirm('원정팀 작업을 모두 Reset 할까요?')) board.resetTeam('away');
 });
 
 // Mode toggle
