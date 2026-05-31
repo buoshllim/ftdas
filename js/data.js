@@ -181,42 +181,35 @@ function parseStandingsJson(json) {
   });
 }
 
-// 팀 경기 일정 — ESPN team schedule (past 3 + next 3)
+// 팀 경기 일정 — ESPN team schedule, 날짜순 정렬해서 raw 저장
+// renderFixtures에서 현재 시간 기준으로 다음 3경기 필터링
 async function fetchTeamFixtures(league, teamId, cacheKey) {
-  if (!teamId) return { past: [], next: [] };
+  if (!teamId) return [];
   const cached = getCache(cacheKey);
   if (cached) return cached;
 
   const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/teams/${teamId}/schedule`;
   const json = await espnFetch(url);
-  if (!json?.events) return { past: [], next: [] };
+  if (!json?.events) return [];
 
-  const now = Date.now();
-  const events = json.events.map(e => {
-    const comp = e.competitions?.[0];
-    const isCompleted = comp?.status?.type?.completed === true;
-    const home = comp?.competitors?.find(c => c.homeAway === 'home');
-    const away = comp?.competitors?.find(c => c.homeAway === 'away');
-    return {
-      _ts: new Date(e.date).getTime(),
-      fixture: { date: e.date },
-      teams: {
-        home: { name: home?.team?.displayName ?? '—' },
-        away: { name: away?.team?.displayName ?? '—' },
-      },
-      goals: isCompleted
-        ? { home: home?.score ?? '0', away: away?.score ?? '0' }
-        : null,
-    };
-  });
+  const events = json.events
+    .map(e => {
+      const comp = e.competitions?.[0];
+      const home = comp?.competitors?.find(c => c.homeAway === 'home');
+      const away = comp?.competitors?.find(c => c.homeAway === 'away');
+      return {
+        ts: new Date(e.date).getTime(),
+        fixture: { date: e.date },
+        teams: {
+          home: { name: home?.team?.displayName ?? '—' },
+          away: { name: away?.team?.displayName ?? '—' },
+        },
+      };
+    })
+    .sort((a, b) => a.ts - b.ts);
 
-  const strip = arr => arr.map(({ _ts, ...rest }) => rest);
-  const past = strip(events.filter(e => e._ts < now).slice(-3));
-  const next = strip(events.filter(e => e._ts >= now).slice(0, 3));
-
-  const data = { past, next };
-  setCache(cacheKey, data);
-  return data;
+  setCache(cacheKey, events);
+  return events;
 }
 
 async function fetchSpursFixtures() {

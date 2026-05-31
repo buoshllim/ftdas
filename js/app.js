@@ -165,39 +165,34 @@ async function loadStandings(league) {
   tbody.innerHTML = html;
 }
 
-function renderFixtures(el, data) {
+function renderFixtures(el, events) {
   const formatDate = (dateStr) => {
     const d = new Date(dateStr);
-    return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', weekday: 'short' });
+    const date = d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', weekday: 'short', timeZone: 'Asia/Seoul' });
+    const time = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Seoul' });
+    return `${date} ${time}`;
   };
 
-  const fixtures = [
-    ...(data.past || []).map(f => ({ ...f, isPast: true })),
-    ...(data.next || []).map(f => ({ ...f, isPast: false })),
-  ];
+  const now = Date.now();
+  const upcoming = (events || [])
+    .filter(e => e.ts >= now)
+    .slice(0, 3);
 
-  if (!fixtures.length) {
-    el.innerHTML = `<div class="loading">경기 일정을 불러오지 못했어요.</div>`;
+  if (!upcoming.length) {
+    el.innerHTML = `<div class="loading">예정된 경기가 없어요.</div>`;
     return;
   }
 
-  el.innerHTML = fixtures.map(f => {
-    const home = f.teams.home.name;
-    const away = f.teams.away.name;
-    const homeG = f.goals?.home ?? '';
-    const awayG = f.goals?.away ?? '';
-    const score = f.isPast ? `${homeG} - ${awayG}` : 'vs';
-    return `
-      <div class="fixture-item">
-        <div class="fixture-date">${formatDate(f.fixture.date)}</div>
-        <div class="fixture-teams">
-          <span>${home}</span>
-          <span class="fixture-score">${score}</span>
-          <span>${away}</span>
-        </div>
+  el.innerHTML = upcoming.map(f => `
+    <div class="fixture-item">
+      <div class="fixture-date">${formatDate(f.fixture.date)}</div>
+      <div class="fixture-teams">
+        <span>${f.teams.home.name}</span>
+        <span class="fixture-score">vs</span>
+        <span>${f.teams.away.name}</span>
       </div>
-    `;
-  }).join('');
+    </div>
+  `).join('');
 }
 
 async function loadSpursFixtures() {
