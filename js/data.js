@@ -181,18 +181,24 @@ function parseStandingsJson(json) {
   });
 }
 
-// 팀 경기 일정 — ESPN team schedule, 날짜순 정렬해서 raw 저장
-// renderFixtures에서 현재 시간 기준으로 다음 3경기 필터링
+// 팀 경기 일정 — 스코어보드 날짜 범위로 미래 경기 조회
+// /teams/{id}/schedule 은 이미 치른 경기만 반환하므로 scoreboard 방식 사용
 async function fetchTeamFixtures(league, teamId, cacheKey) {
   if (!teamId) return [];
   const cached = getCache(cacheKey);
-  if (cached) return cached;
+  if (Array.isArray(cached)) return cached;
 
-  const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/teams/${teamId}/schedule`;
+  const now = new Date();
+  const toStr = d => d.toISOString().slice(0, 10).replace(/-/g, '');
+  const start = toStr(now);
+  const end = `${now.getFullYear()}1231`;
+
+  const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/scoreboard?dates=${start}-${end}&limit=500`;
   const json = await espnFetch(url);
   if (!json?.events) return [];
 
   const events = json.events
+    .filter(e => (e.competitions?.[0]?.competitors ?? []).some(c => c.team?.id === teamId))
     .map(e => {
       const comp = e.competitions?.[0];
       const home = comp?.competitors?.find(c => c.homeAway === 'home');
@@ -208,7 +214,7 @@ async function fetchTeamFixtures(league, teamId, cacheKey) {
     })
     .sort((a, b) => a.ts - b.ts);
 
-  setCache(cacheKey, events);
+  if (events.length) setCache(cacheKey, events);
   return events;
 }
 

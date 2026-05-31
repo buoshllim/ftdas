@@ -174,9 +174,8 @@ function renderFixtures(el, events) {
   };
 
   const now = Date.now();
-  const upcoming = (events || [])
-    .filter(e => e.ts >= now)
-    .slice(0, 3);
+  const list = Array.isArray(events) ? events : [];
+  const upcoming = list.filter(e => e.ts >= now).slice(0, 3);
 
   if (!upcoming.length) {
     el.innerHTML = `<div class="loading">예정된 경기가 없어요.</div>`;
