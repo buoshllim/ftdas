@@ -275,6 +275,14 @@ header {
   color: var(--gold);
 }
 
+.season-tag {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 400;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
 /* Son stats */
 
 .stats-grid {

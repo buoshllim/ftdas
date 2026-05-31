@@ -120,6 +120,13 @@ async function initDataTab() {
   });
 }
 
+function seasonLabel(leagueName) {
+  const y = new Date().getFullYear();
+  const s = String(y).slice(-2);
+  const calYear = ['MLS', 'K리그'];
+  return calYear.includes(leagueName) ? `${y}` : `${y - 1}-${s}`;
+}
+
 async function loadSonStats() {
   const data = await fetchSonStats();
   renderSonStats(data);
@@ -129,6 +136,7 @@ function renderSonStats(data) {
   document.getElementById('son-goals').textContent = data.goals;
   document.getElementById('son-assists').textContent = data.assists;
   document.getElementById('son-apps').textContent = data.apps;
+  document.getElementById('son-season').textContent = `MLS ${new Date().getFullYear()}`;
 }
 
 async function loadStandings(league) {
@@ -139,12 +147,15 @@ async function loadStandings(league) {
 
   if (rows === null) {
     tbody.innerHTML = `<tr><td colspan="6" class="loading">ESPN에서 지원하지 않는 리그예요.</td></tr>`;
+    document.getElementById('standings-season').textContent = '';
     return;
   }
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="6" class="loading">데이터를 불러오지 못했어요. 새로고침 눌러봐!</td></tr>`;
     return;
   }
+
+  document.getElementById('standings-season').textContent = seasonLabel(league);
 
   let html = '';
   let lastGroup = null;
@@ -198,10 +209,12 @@ async function loadSpursFixtures() {
   const el = document.getElementById('spurs-fixtures-content');
   const data = await fetchSpursFixtures();
   renderFixtures(el, data);
+  document.getElementById('spurs-season').textContent = seasonLabel('EPL');
 }
 
 async function loadLafcFixtures() {
   const el = document.getElementById('lafc-fixtures-content');
   const data = await fetchLafcFixtures();
   renderFixtures(el, data);
+  document.getElementById('lafc-season').textContent = seasonLabel('MLS');
 }
