@@ -117,44 +117,10 @@ function renderSonSeasonSelector() {
   });
 }
 
-const REFRESH_KEY = 'ftdas_last_refresh';
-const ONE_DAY = 24 * 60 * 60 * 1000;
-
-const DEV_MODE = true; // 개발 중 — 완성 후 false로 변경
-
-function updateRefreshBtn() {
-  const btn = document.getElementById('refresh-btn');
-  const status = document.getElementById('refresh-status');
-  if (DEV_MODE) {
-    btn.disabled = false;
-    status.textContent = '개발 모드 (제한 없음)';
-    return;
-  }
-  const last = parseInt(localStorage.getItem(REFRESH_KEY) || '0');
-  const elapsed = Date.now() - last;
-  const remaining = ONE_DAY - elapsed;
-
-  if (last && remaining > 0) {
-    btn.disabled = true;
-    const h = Math.floor(remaining / 3600000);
-    const m = Math.floor((remaining % 3600000) / 60000);
-    status.textContent = `다음 새로고침까지 ${h}시간 ${m}분`;
-  } else {
-    btn.disabled = false;
-    status.textContent = last ? '새로고침 가능!' : '';
-  }
-}
-
 async function hardRefresh() {
-  // Clear all API caches
   Object.keys(localStorage).forEach(k => {
-    if (k.startsWith('ftdas_') && k !== 'ftdas_last_refresh' && k !== 'ftdas_son_stats_manual') {
-      localStorage.removeItem(k);
-    }
+    if (k.startsWith('ftdas_')) localStorage.removeItem(k);
   });
-  localStorage.setItem(REFRESH_KEY, String(Date.now()));
-  updateRefreshBtn();
-
   await Promise.all([loadSonStats(), loadStandings(currentLeague), loadSpursFixtures(), loadLafcFixtures()]);
 }
 
@@ -162,7 +128,6 @@ async function initDataTab() {
   if (dataInitialized) return;
   dataInitialized = true;
 
-  updateRefreshBtn();
   document.getElementById('refresh-btn').addEventListener('click', hardRefresh);
 
   currentSonSeason = defaultSeason('MLS');
