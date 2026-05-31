@@ -121,10 +121,16 @@ async function initDataTab() {
 }
 
 function seasonLabel(leagueName) {
-  const y = new Date().getFullYear();
-  const s = String(y).slice(-2);
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
   const calYear = ['MLS', 'K리그'];
-  return calYear.includes(leagueName) ? `${y}` : `${y - 1}-${s}`;
+  if (calYear.includes(leagueName)) return `${y}`;
+  // 유럽 리그는 5월 하순(~20일)에 시즌 종료 → 그 이후는 다음 시즌 기준
+  const nextSeason = m > 5 || (m === 5 && d >= 20);
+  const start = nextSeason ? y : y - 1;
+  return `${start}-${String(start + 1).slice(-2)}`;
 }
 
 async function loadSonStats() {
