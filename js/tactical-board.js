@@ -299,38 +299,54 @@ class TacticalBoard {
 
   drawBall() {
     const { ctx } = this;
-    const x = this.ball.x * this.W;
-    const y = this.ball.y * this.H;
-    const r = Math.min(this.W, this.H) * 0.028;
+    const cx = this.ball.x * this.W;
+    const cy = this.ball.y * this.H;
+    const r = Math.min(this.W, this.H) * 0.03;
+
+    const pentagon = (x, y, pr, startAngle) => {
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const a = startAngle + (i / 5) * Math.PI * 2;
+        i === 0 ? ctx.moveTo(x + Math.cos(a) * pr, y + Math.sin(a) * pr)
+                : ctx.lineTo(x + Math.cos(a) * pr, y + Math.sin(a) * pr);
+      }
+      ctx.closePath();
+    };
 
     // Shadow
     ctx.beginPath();
-    ctx.arc(x + 2, y + 2, r, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.arc(cx + 2, cy + 2, r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.fill();
 
-    // Ball body
+    // White base
     ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
-    ctx.strokeStyle = '#111111';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
 
-    // Center patch
-    ctx.fillStyle = '#111111';
+    // Clip to ball circle, draw black pentagon patches
+    ctx.save();
     ctx.beginPath();
-    ctx.arc(x, y, r * 0.3, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.fillStyle = '#1a1a1a';
 
-    // 5 surrounding patches
+    pentagon(cx, cy, r * 0.38, -Math.PI / 2);
+    ctx.fill();
     for (let i = 0; i < 5; i++) {
-      const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
-      ctx.beginPath();
-      ctx.arc(x + Math.cos(angle) * r * 0.62, y + Math.sin(angle) * r * 0.62, r * 0.17, 0, Math.PI * 2);
+      const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+      pentagon(cx + Math.cos(a) * r * 0.76, cy + Math.sin(a) * r * 0.76, r * 0.38, a + Math.PI / 5);
       ctx.fill();
     }
+    ctx.restore();
+
+    // Outline
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
   }
 
   getBallAt(x, y) {
