@@ -104,16 +104,17 @@ function saveManualSonStats(data) {
 }
 
 // 리그 순위 — ESPN v2 (K리그는 kleague.com 공식 API)
-async function fetchStandings(leagueName) {
+async function fetchStandings(leagueName, season) {
   const slug = LEAGUE_SLUGS[leagueName];
   if (!slug) return [];
   if (slug === 'kleague') return fetchKLeagueStandings();
 
-  const cacheKey = `standings_${slug}`;
+  const cacheKey = `standings_${slug}_${season ?? 'cur'}`;
   const cached = getCache(cacheKey);
   if (cached) return cached;
 
-  const url = `https://site.web.api.espn.com/apis/v2/sports/soccer/${slug}/standings?region=us&lang=en&contentorigin=espn`;
+  const seasonParam = season ? `&season=${season}` : '';
+  const url = `https://site.web.api.espn.com/apis/v2/sports/soccer/${slug}/standings?region=us&lang=en&contentorigin=espn${seasonParam}`;
   const json = await espnFetch(url);
   if (!json) return [];
 

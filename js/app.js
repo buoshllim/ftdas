@@ -40,6 +40,61 @@ board.applyFormation('4-3-3', 'home');
 
 let dataInitialized = false;
 let currentLeague = 'EPL';
+let currentSeason = null; // null = ESPN 기본값
+
+function defaultSeason(leagueName) {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  if (['MLS', 'K리그'].includes(leagueName)) return y;
+  // 유럽 리그: 8월부터 새 시즌 시작
+  return m >= 8 ? y : y - 1;
+}
+
+function getLeagueSeasons(leagueName) {
+  if (leagueName === 'K리그') return null; // kleague API는 시즌 선택 불가
+  const def = defaultSeason(leagueName);
+  return [def - 1, def];
+}
+
+function seasonYearToLabel(leagueName, year) {
+  if (['MLS', 'K리그'].includes(leagueName)) return String(year);
+  return `${year}-${String(year + 1).slice(-2)}`;
+}
+
+function isSeasonComplete(leagueName, season) {
+  if (leagueName === 'K리그') return false;
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
+  if (leagueName === 'MLS') return season < y;
+  // 유럽: season Y → Y+1년 5월 하순 종료
+  if (season + 1 < y) return true;
+  if (season + 1 === y && (m > 5 || (m === 5 && d >= 20))) return true;
+  return false;
+}
+
+function renderSeasonSelector(leagueName) {
+  const el = document.getElementById('season-selector');
+  const seasons = getLeagueSeasons(leagueName);
+  if (!seasons) { el.innerHTML = ''; return; }
+
+  el.innerHTML = seasons.map(s => {
+    const label = seasonYearToLabel(leagueName, s);
+    const ended = isSeasonComplete(leagueName, s);
+    const active = s === currentSeason ? 'active' : '';
+    const badge = ended ? '<span class="ended-badge">종료</span>' : '';
+    return `<button class="season-btn ${active}" data-season="${s}">${label}${badge}</button>`;
+  }).join('');
+
+  el.querySelectorAll('.season-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentSeason = parseInt(btn.dataset.season);
+      loadStandings(currentLeague);
+    });
+  });
+}
 
 const REFRESH_KEY = 'ftdas_last_refresh';
 const ONE_DAY = 24 * 60 * 60 * 1000;
@@ -90,6 +145,7 @@ async function initDataTab() {
   document.getElementById('refresh-btn').addEventListener('click', hardRefresh);
 
   loadSonStats();
+  currentSeason = defaultSeason('EPL');
   loadStandings('EPL');
   loadSpursFixtures();
   loadLafcFixtures();
@@ -99,6 +155,7 @@ async function initDataTab() {
       document.querySelectorAll('.league-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentLeague = btn.dataset.league;
+      currentSeason = defaultSeason(currentLeague);
       loadStandings(currentLeague);
     });
   });
@@ -149,7 +206,9 @@ async function loadStandings(league) {
   const tbody = document.getElementById('standings-body');
   tbody.innerHTML = '<tr><td colspan="6" class="loading">불러오는 중...</td></tr>';
 
-  const rows = await fetchStandings(league);
+  renderSeasonSelector(league);
+
+  const rows = await fetchStandings(league, currentSeason);
 
   if (rows === null) {
     tbody.innerHTML = `<tr><td colspan="6" class="loading">ESPN에서 지원하지 않는 리그예요.</td></tr>`;
@@ -157,11 +216,15 @@ async function loadStandings(league) {
     return;
   }
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="loading">데이터를 불러오지 못했어요. 새로고침 눌러봐!</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="loading">아직 시즌 일정이 없어요.</td></tr>`;
     return;
   }
 
-  document.getElementById('standings-season').textContent = seasonLabel(league);
+  document.getElementById('standings-season').textContent = seasonYearToLabel(league, currentSeason);
+
+  const completed = isSeasonComplete(league, currentSeason);
+  const hasGroups = rows.some(t => t.group);
+  const showTrophy = completed && !hasGroups;
 
   let html = '';
   let lastGroup = null;
@@ -170,9 +233,10 @@ async function loadStandings(league) {
       html += `<tr><td colspan="6" style="padding:8px 6px 4px;font-size:11px;color:var(--gold);font-weight:700;">— ${t.group} 지구 —</td></tr>`;
       lastGroup = t.group;
     }
+    const trophy = showTrophy && t.rank === 1 ? '🏆 ' : '';
     html += `<tr class="${t.teamId === SPURS_ID ? 'highlight-row' : ''}">
       <td class="rank-num">${t.rank}</td>
-      <td class="team-name">${t.name}</td>
+      <td class="team-name">${trophy}${t.name}</td>
       <td><strong>${t.points}</strong></td>
       <td>${t.win}</td>
       <td>${t.draw}</td>

@@ -366,7 +366,43 @@ header {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-bottom: 10px;
+}
+
+.season-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-bottom: 14px;
+  min-height: 10px;
+}
+
+.season-btn {
+  background: var(--navy);
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--border);
+  padding: 3px 10px;
+  border-radius: 14px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.season-btn.active {
+  color: var(--white);
+  border-color: rgba(245, 166, 35, 0.5);
+  background: rgba(245, 166, 35, 0.08);
+}
+
+.ended-badge {
+  font-size: 9px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.5);
+  padding: 1px 5px;
+  border-radius: 8px;
 }
 
 .league-btn {
