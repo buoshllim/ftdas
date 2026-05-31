@@ -360,7 +360,10 @@ class TacticalBoard {
         const moved = Math.sqrt((x - tapStart.x) ** 2 + (y - tapStart.y) ** 2);
         if (moved < 8) {
           const idx = this.getArrowAt(x, y);
-          if (idx !== -1) { this.arrows.splice(idx, 1); needsRender = true; }
+          if (idx !== -1 && confirm('이 화살표를 삭제할까요?')) {
+            this.arrows.splice(idx, 1);
+            needsRender = true;
+          }
         }
         tapStart = null;
       }
