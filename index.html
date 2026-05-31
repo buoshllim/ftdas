@@ -70,7 +70,10 @@
       <!-- 왼쪽: 손흥민 스탯 + 경기 일정 -->
       <div class="data-left">
         <div class="data-card">
-          <h2>⚽ 손흥민 시즌 스탯 <span class="season-tag" id="son-season"></span></h2>
+          <div class="card-header">
+            <h2>⚽ 손흥민 시즌 스탯</h2>
+            <div id="son-season-selector" class="season-selector"></div>
+          </div>
           <div class="stats-grid">
             <div class="stat-box">
               <div class="stat-value" id="son-goals">—</div>
@@ -84,13 +87,6 @@
               <div class="stat-value" id="son-apps">—</div>
               <div class="stat-label">선발</div>
             </div>
-          </div>
-          <button class="edit-btn" id="son-edit-btn">✏️ 직접 입력</button>
-          <div id="son-edit-form" class="edit-form hidden">
-            <input type="number" id="input-goals" placeholder="골" min="0" />
-            <input type="number" id="input-assists" placeholder="어시스트" min="0" />
-            <input type="number" id="input-apps" placeholder="선발" min="0" />
-            <button id="son-save-btn">저장</button>
           </div>
         </div>
 
@@ -111,7 +107,10 @@
 
       <!-- 오른쪽: 리그 순위 -->
       <div class="data-card standings">
-        <h2>🏆 리그 순위 <span class="season-tag" id="standings-season"></span></h2>
+        <div class="card-header">
+          <h2>🏆 리그 순위</h2>
+          <div id="season-selector" class="season-selector"></div>
+        </div>
         <div class="league-tabs">
           <button class="league-btn active" data-league="EPL">EPL</button>
           <button class="league-btn" data-league="라리가">라리가</button>
@@ -120,7 +119,6 @@
           <button class="league-btn" data-league="K리그">K리그</button>
           <button class="league-btn" data-league="MLS">MLS</button>
         </div>
-        <div id="season-selector" class="season-selector"></div>
         <table id="standings-table">
           <thead>
             <tr>

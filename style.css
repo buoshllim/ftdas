@@ -275,6 +275,19 @@ header {
   color: var(--gold);
 }
 
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.card-header h2 {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
 .season-tag {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.4);

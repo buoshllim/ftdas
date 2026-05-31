@@ -40,7 +40,8 @@ board.applyFormation('4-3-3', 'home');
 
 let dataInitialized = false;
 let currentLeague = 'EPL';
-let currentSeason = null; // null = ESPN 기본값
+let currentSeason = null;
+let currentSonSeason = null;
 
 function defaultSeason(leagueName) {
   const now = new Date();
@@ -96,6 +97,26 @@ function renderSeasonSelector(leagueName) {
   });
 }
 
+function renderSonSeasonSelector() {
+  const el = document.getElementById('son-season-selector');
+  const def = defaultSeason('MLS');
+  const seasons = [def - 1, def];
+
+  el.innerHTML = seasons.map(s => {
+    const ended = isSeasonComplete('MLS', s);
+    const active = s === currentSonSeason ? 'active' : '';
+    const badge = ended ? '<span class="ended-badge">종료</span>' : '';
+    return `<button class="season-btn ${active}" data-season="${s}">MLS ${s}${badge}</button>`;
+  }).join('');
+
+  el.querySelectorAll('.season-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentSonSeason = parseInt(btn.dataset.season);
+      loadSonStats();
+    });
+  });
+}
+
 const REFRESH_KEY = 'ftdas_last_refresh';
 const ONE_DAY = 24 * 60 * 60 * 1000;
 
@@ -144,6 +165,7 @@ async function initDataTab() {
   updateRefreshBtn();
   document.getElementById('refresh-btn').addEventListener('click', hardRefresh);
 
+  currentSonSeason = defaultSeason('MLS');
   loadSonStats();
   currentSeason = defaultSeason('EPL');
   loadStandings('EPL');
@@ -158,22 +180,6 @@ async function initDataTab() {
       currentSeason = defaultSeason(currentLeague);
       loadStandings(currentLeague);
     });
-  });
-
-  // Son stats edit
-  document.getElementById('son-edit-btn').addEventListener('click', () => {
-    document.getElementById('son-edit-form').classList.toggle('hidden');
-  });
-
-  document.getElementById('son-save-btn').addEventListener('click', () => {
-    const data = {
-      goals: document.getElementById('input-goals').value || '—',
-      assists: document.getElementById('input-assists').value || '—',
-      apps: document.getElementById('input-apps').value || '—',
-    };
-    saveManualSonStats(data);
-    renderSonStats(data);
-    document.getElementById('son-edit-form').classList.add('hidden');
   });
 }
 
@@ -191,15 +197,15 @@ function seasonLabel(leagueName) {
 }
 
 async function loadSonStats() {
-  const data = await fetchSonStats();
+  const data = await fetchSonStats(currentSonSeason);
   renderSonStats(data);
+  renderSonSeasonSelector();
 }
 
 function renderSonStats(data) {
   document.getElementById('son-goals').textContent = data.goals;
   document.getElementById('son-assists').textContent = data.assists;
   document.getElementById('son-apps').textContent = data.apps;
-  document.getElementById('son-season').textContent = `MLS ${new Date().getFullYear()}`;
 }
 
 async function loadStandings(league) {
@@ -212,7 +218,6 @@ async function loadStandings(league) {
 
   if (rows === null) {
     tbody.innerHTML = `<tr><td colspan="6" class="loading">ESPN에서 지원하지 않는 리그예요.</td></tr>`;
-    document.getElementById('standings-season').textContent = '';
     return;
   }
   if (!rows.length) {
@@ -220,11 +225,10 @@ async function loadStandings(league) {
     return;
   }
 
-  document.getElementById('standings-season').textContent = seasonYearToLabel(league, currentSeason);
-
   const completed = isSeasonComplete(league, currentSeason);
   const hasGroups = rows.some(t => t.group);
   const showTrophy = completed && !hasGroups;
+  const mlsCupId = MLS_CUP_CHAMPIONS[currentSeason];
 
   let html = '';
   let lastGroup = null;
@@ -233,7 +237,9 @@ async function loadStandings(league) {
       html += `<tr><td colspan="6" style="padding:8px 6px 4px;font-size:11px;color:var(--gold);font-weight:700;">— ${t.group} 지구 —</td></tr>`;
       lastGroup = t.group;
     }
-    const trophy = showTrophy && t.rank === 1 ? '🏆 ' : '';
+    const isLeagueChamp = showTrophy && t.rank === 1;
+    const isMlsCup = league === 'MLS' && mlsCupId && String(t.teamId) === String(mlsCupId);
+    const trophy = isLeagueChamp || isMlsCup ? '🏆 ' : '';
     html += `<tr class="${t.teamId === SPURS_ID ? 'highlight-row' : ''}">
       <td class="rank-num">${t.rank}</td>
       <td class="team-name">${trophy}${t.name}</td>

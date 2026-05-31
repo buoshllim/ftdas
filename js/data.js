@@ -17,6 +17,13 @@ const SON_ESPN_ID  = '149945'; // Son Heung-Min (ESPN athlete ID)
 const SPURS_LEAGUE = 'eng.1';
 const LAFC_LEAGUE  = 'usa.1';
 
+// MLS Cup 우승팀 ESPN ID — 챔피언 결정 후 추가
+// 예: 2025: '18966'  (LAFC가 우승했을 경우)
+const MLS_CUP_CHAMPIONS = {
+  // 2025: '...',
+  // 2026: '...',
+};
+
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const KST_OFFSET = 9 * 60 * 60 * 1000;
 
@@ -57,26 +64,29 @@ async function espnFetch(url) {
   }
 }
 
-// 손흥민 스탯 — ESPN MLS 통계 자동, 실패 시 수동 입력 폴백
-async function fetchSonStats() {
-  const cached = getCache('son_stats');
+const EMPTY_SON_STATS = { goals: '—', assists: '—', apps: '—' };
+
+// 손흥민 스탯 — ESPN MLS 통계, season 파라미터로 연도별 조회
+async function fetchSonStats(season) {
+  const cacheKey = `son_stats_${season ?? 'cur'}`;
+  const cached = getCache(cacheKey);
   if (cached) return cached;
 
   try {
-    const url = `https://site.web.api.espn.com/apis/common/v3/sports/soccer/${LAFC_LEAGUE}/athletes/${SON_ESPN_ID}/overview`;
+    const seasonParam = season ? `?season=${season}` : '';
+    const url = `https://site.web.api.espn.com/apis/common/v3/sports/soccer/${LAFC_LEAGUE}/athletes/${SON_ESPN_ID}/overview${seasonParam}`;
     const res = await fetch(url);
-    if (!res.ok) return getManualSonStats();
+    if (!res.ok) return EMPTY_SON_STATS;
     const json = await res.json();
 
     const stats = json.statistics ?? {};
     const names = stats.names ?? [];
     const splits = Array.isArray(stats.splits) ? stats.splits : [];
 
-    // MLS LAFC 시즌 스탯만 추출
     const mlsSplit = splits.find(s =>
       s.leagueSlug === LAFC_LEAGUE && String(s.teamId) === LAFC_ID
     );
-    if (!mlsSplit) return getManualSonStats();
+    if (!mlsSplit) return EMPTY_SON_STATS;
 
     const vals = mlsSplit.stats ?? [];
     const m = {};
@@ -87,10 +97,10 @@ async function fetchSonStats() {
       assists: m.goalAssists ?? '—',
       apps:    m.starts      ?? '—',
     };
-    setCache('son_stats', data);
+    setCache(cacheKey, data);
     return data;
   } catch {
-    return getManualSonStats();
+    return EMPTY_SON_STATS;
   }
 }
 
