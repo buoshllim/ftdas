@@ -26,8 +26,8 @@ const MLS_CUP_CHAMPIONS = {
 
 // UCL 우승팀 ESPN ID — 시즌 종료 후 추가
 const UCL_CHAMPIONS = {
-  // 2024: '...', // 2024-25 UCL 우승팀 ID
-  2025: '160',   // 2025-26 UCL 챔피언: Paris Saint-Germain (승부차기)
+  2024: '160',   // 2024-25 UCL 챔피언: Paris Saint-Germain (5-0 vs 인테르)
+  2025: '160',   // 2025-26 UCL 챔피언: Paris Saint-Germain (승부차기 vs 아스날)
 };
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
