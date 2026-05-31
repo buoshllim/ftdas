@@ -54,9 +54,6 @@ document.getElementById('clear-arrows-btn').addEventListener('click', () => {
   board.clearArrows();
 });
 
-// Apply default formations on load
-board.applyFormation('4-3-3', 'home');
-board.applyFormation('4-4-2', 'away');
 
 // --- Data Tab ---
 
