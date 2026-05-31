@@ -53,8 +53,8 @@ function defaultSeason(leagueName) {
 }
 
 function getLeagueSeasons(leagueName) {
-  if (leagueName === 'K리그') return null; // kleague API는 시즌 선택 불가
   const def = defaultSeason(leagueName);
+  if (leagueName === 'K리그') return [def]; // kleague API는 현재 시즌만 지원
   return [def - 1, def];
 }
 
