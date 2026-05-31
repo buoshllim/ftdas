@@ -219,7 +219,7 @@ async function loadStandings(league) {
     const isMlsCup = league === 'MLS' && mlsCupId && String(t.teamId) === String(mlsCupId);
     const isUclChamp = league === 'UCL' && uclChampId && String(t.teamId) === String(uclChampId);
     const trophy = isLeagueChamp || isMlsCup || isUclChamp ? '🏆 ' : '';
-    html += `<tr class="${t.teamId === SPURS_ID ? 'highlight-row' : ''}">
+    html += `<tr>
       <td class="rank-num">${t.rank}</td>
       <td class="team-name">${trophy}${t.name}</td>
       <td><strong>${t.points}</strong></td>
