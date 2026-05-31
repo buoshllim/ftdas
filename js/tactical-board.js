@@ -192,54 +192,58 @@ class TacticalBoard {
 
   drawArrows() {
     this.arrows.forEach(arrow => {
-      let fx, fy;
-      if (arrow.fromId != null) {
-        const from = this.players.find(p => p.id === arrow.fromId);
-        if (!from) return;
-        fx = from.x * this.W;
-        fy = from.y * this.H;
-      } else {
-        fx = arrow.fx * this.W;
-        fy = arrow.fy * this.H;
-      }
-      this.drawArrow(fx, fy, arrow.tx * this.W, arrow.ty * this.H, arrow.color || '#f5a623');
+      const abs = arrow.points.map(p => ({ x: p.x * this.W, y: p.y * this.H }));
+      this.drawSmoothArrow(abs, arrow.color);
     });
     if (this.drawingArrow) {
-      this.ctx.globalAlpha = 0.5;
-      this.drawArrow(
-        this.drawingArrow.fx, this.drawingArrow.fy,
-        this.drawingArrow.tx, this.drawingArrow.ty,
-        this.drawingArrow.color
-      );
+      this.ctx.globalAlpha = 0.6;
+      this.drawSmoothArrow(this.drawingArrow.points, this.drawingArrow.color);
       this.ctx.globalAlpha = 1;
     }
   }
 
-  drawArrow(fx, fy, tx, ty, color) {
-    const { ctx } = this;
-    const dx = tx - fx, dy = ty - fy;
-    const angle = Math.atan2(dy, dx);
-    const len = Math.sqrt(dx * dx + dy * dy);
-    if (len < 10) return;
+  drawSmoothArrow(points, color) {
+    if (points.length < 2) return;
+    const ctx = this.ctx;
 
     ctx.strokeStyle = color;
     ctx.lineWidth = 2.5;
     ctx.setLineDash([6, 4]);
     ctx.beginPath();
-    ctx.moveTo(fx, fy);
-    ctx.lineTo(tx, ty);
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length - 1; i++) {
+      const mx = (points[i].x + points[i + 1].x) / 2;
+      const my = (points[i].y + points[i + 1].y) / 2;
+      ctx.quadraticCurveTo(points[i].x, points[i].y, mx, my);
+    }
+    ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Arrowhead
+    // Arrowhead — last segment direction
+    const last = points[points.length - 1];
+    const ref = points[Math.max(0, points.length - 3)];
+    const angle = Math.atan2(last.y - ref.y, last.x - ref.x);
     const hs = 12;
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.moveTo(tx, ty);
-    ctx.lineTo(tx - hs * Math.cos(angle - 0.4), ty - hs * Math.sin(angle - 0.4));
-    ctx.lineTo(tx - hs * Math.cos(angle + 0.4), ty - hs * Math.sin(angle + 0.4));
+    ctx.moveTo(last.x, last.y);
+    ctx.lineTo(last.x - hs * Math.cos(angle - 0.4), last.y - hs * Math.sin(angle - 0.4));
+    ctx.lineTo(last.x - hs * Math.cos(angle + 0.4), last.y - hs * Math.sin(angle + 0.4));
     ctx.closePath();
     ctx.fill();
+  }
+
+  simplifyPoints(points) {
+    if (points.length <= 3) return points;
+    const result = [points[0]];
+    let last = points[0];
+    for (let i = 1; i < points.length - 1; i++) {
+      const d = Math.sqrt((points[i].x - last.x) ** 2 + (points[i].y - last.y) ** 2);
+      if (d >= 8) { result.push(points[i]); last = points[i]; }
+    }
+    result.push(points[points.length - 1]);
+    return result;
   }
 
   drawPlayers() {
@@ -324,12 +328,10 @@ class TacticalBoard {
         if (p) { e.preventDefault(); this.saveSnapshot(); this.dragging = p; }
       } else {
         e.preventDefault();
-        if (p) {
-          const color = p.team === 'home' ? '#4a9eff' : '#ff4a4a';
-          this.drawingArrow = { fromId: p.id, fx: p.x * this.W, fy: p.y * this.H, tx: x, ty: y, color };
-        } else {
-          this.drawingArrow = { fx: x, fy: y, tx: x, ty: y, color: '#f5a623' };
-        }
+        const startX = p ? p.x * this.W : x;
+        const startY = p ? p.y * this.H : y;
+        const color = p ? (p.team === 'home' ? '#4a9eff' : '#ff4a4a') : '#f5a623';
+        this.drawingArrow = { points: [{ x: startX, y: startY }], color };
       }
     };
 
@@ -342,8 +344,9 @@ class TacticalBoard {
           this.dragging.x = Math.max(0, Math.min(1, x / this.W));
           this.dragging.y = Math.max(0, Math.min(1, y / this.H));
         } else {
-          this.drawingArrow.tx = x;
-          this.drawingArrow.ty = y;
+          const pts = this.drawingArrow.points;
+          const last = pts[pts.length - 1];
+          if (Math.sqrt((x - last.x) ** 2 + (y - last.y) ** 2) > 5) pts.push({ x, y });
         }
         this.render();
       }
@@ -358,26 +361,25 @@ class TacticalBoard {
           this.removePlayer(this.dragging.id); // render 내부 호출
         }
       } else if (this.drawingArrow) {
-        const dist = Math.sqrt((x - this.drawingArrow.fx) ** 2 + (y - this.drawingArrow.fy) ** 2);
-        if (dist < 8) {
+        const pts = this.drawingArrow.points;
+        const first = pts[0];
+        const totalDist = Math.sqrt((x - first.x) ** 2 + (y - first.y) ** 2);
+        if (pts.length <= 2 && totalDist < 8) {
           // 탭 → 화살표 삭제 시도
-          const idx = this.getArrowAt(this.drawingArrow.fx, this.drawingArrow.fy);
+          const idx = this.getArrowAt(first.x, first.y);
           if (idx !== -1 && confirm('이 화살표를 삭제할까요?')) {
             this.saveSnapshot();
             this.arrows.splice(idx, 1);
             needsRender = true;
           }
-        } else {
-          // 드래그 → 화살표 생성
+        } else if (pts.length >= 2) {
+          // 드래그 → 자유 곡선 화살표 생성
           this.saveSnapshot();
-          const arrow = { tx: x / this.W, ty: y / this.H, color: this.drawingArrow.color };
-          if (this.drawingArrow.fromId != null) {
-            arrow.fromId = this.drawingArrow.fromId;
-          } else {
-            arrow.fx = this.drawingArrow.fx / this.W;
-            arrow.fy = this.drawingArrow.fy / this.H;
-          }
-          this.arrows.push(arrow);
+          const simplified = this.simplifyPoints(pts);
+          this.arrows.push({
+            points: simplified.map(p => ({ x: p.x / this.W, y: p.y / this.H })),
+            color: this.drawingArrow.color,
+          });
           needsRender = true;
         }
         this.drawingArrow = null;
@@ -466,18 +468,10 @@ class TacticalBoard {
 
   getArrowAt(x, y) {
     for (let i = this.arrows.length - 1; i >= 0; i--) {
-      const arrow = this.arrows[i];
-      let fx, fy;
-      if (arrow.fromId != null) {
-        const from = this.players.find(p => p.id === arrow.fromId);
-        if (!from) continue;
-        fx = from.x * this.W;
-        fy = from.y * this.H;
-      } else {
-        fx = arrow.fx * this.W;
-        fy = arrow.fy * this.H;
+      const pts = this.arrows[i].points.map(p => ({ x: p.x * this.W, y: p.y * this.H }));
+      for (let j = 0; j < pts.length - 1; j++) {
+        if (this.distToSegment(x, y, pts[j].x, pts[j].y, pts[j + 1].x, pts[j + 1].y) < 10) return i;
       }
-      if (this.distToSegment(x, y, fx, fy, arrow.tx * this.W, arrow.ty * this.H) < 10) return i;
     }
     return -1;
   }
