@@ -179,10 +179,10 @@ header {
 }
 
 .mode-btn.active {
-  background: var(--gold);
+  background: #ffffff;
   color: var(--navy);
   font-weight: 700;
-  border-color: var(--gold);
+  border-color: #ffffff;
 }
 
 /* Pitch */
