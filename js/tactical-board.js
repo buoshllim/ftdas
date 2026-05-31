@@ -82,10 +82,9 @@ class TacticalBoard {
 
   resize() {
     const container = this.canvas.parentElement;
-    const maxW = Math.min(container ? container.clientWidth : window.innerWidth - 32, 680);
-    const ratio = 1.5;
+    const maxW = Math.min(container ? container.clientWidth - 16 : window.innerWidth - 48, 460);
     this.canvas.width = maxW;
-    this.canvas.height = maxW / ratio;
+    this.canvas.height = Math.round(maxW * 1.5);
     this.W = this.canvas.width;
     this.H = this.canvas.height;
     this.render();
