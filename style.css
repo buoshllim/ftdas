@@ -150,7 +150,8 @@ header {
   transition: background 0.2s;
 }
 
-.toolbar-btn:hover { background: var(--navy-light); }
+.toolbar-btn:hover:not(:disabled) { background: var(--navy-light); }
+.toolbar-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .add-btn {
   background: var(--gold);

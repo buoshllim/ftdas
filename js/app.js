@@ -17,6 +17,7 @@ document.getElementById('home-formation-select').addEventListener('change', e =>
   if (e.target.value) board.applyFormation(e.target.value, 'home');
 });
 document.getElementById('home-add-btn').addEventListener('click', () => {
+  board.saveSnapshot();
   const count = board.players.filter(p => p.team === 'home').length + 1;
   board.addPlayer('home', count, 'CM', 0.5, 0.5);
 });
@@ -29,6 +30,7 @@ document.getElementById('away-formation-select').addEventListener('change', e =>
   if (e.target.value) board.applyFormation(e.target.value, 'away');
 });
 document.getElementById('away-add-btn').addEventListener('click', () => {
+  board.saveSnapshot();
   const count = board.players.filter(p => p.team === 'away').length + 1;
   board.addPlayer('away', count, 'CM', 0.5, 0.5);
 });
@@ -52,6 +54,24 @@ arrowModeBtn.addEventListener('click', () => {
 
 document.getElementById('clear-arrows-btn').addEventListener('click', () => {
   if (confirm('모든 화살표를 삭제할까요?')) board.clearArrows();
+});
+
+// Undo / Redo
+const undoBtn = document.getElementById('undo-btn');
+const redoBtn = document.getElementById('redo-btn');
+
+board.onHistoryChange = () => {
+  undoBtn.disabled = board.history.length === 0;
+  redoBtn.disabled = board.future.length === 0;
+};
+board.onHistoryChange();
+
+undoBtn.addEventListener('click', () => board.undo());
+redoBtn.addEventListener('click', () => board.redo());
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') { e.preventDefault(); board.undo(); }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); board.redo(); }
 });
 
 

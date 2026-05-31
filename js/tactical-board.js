@@ -70,6 +70,9 @@ class TacticalBoard {
     this.nextId = 1;
 
     this.mode = 'move'; // 'move' | 'arrow'
+    this.history = [];
+    this.future = [];
+    this.onHistoryChange = null;
     this.resize();
     window.addEventListener('resize', () => this.resize());
     this.bindEvents();
@@ -105,6 +108,7 @@ class TacticalBoard {
   applyFormation(name, team = 'home') {
     const slots = FORMATIONS[name];
     if (!slots) return;
+    this.saveSnapshot();
     this.players = this.players.filter(p => p.team !== team);
     this.arrows = this.arrows.filter(a => {
       const from = this.players.find(p => p.id === a.fromId);
@@ -314,7 +318,7 @@ class TacticalBoard {
       const p = this.getPlayerAt(x, y);
 
       if (this.mode === 'move') {
-        if (p) { e.preventDefault(); this.dragging = p; }
+        if (p) { e.preventDefault(); this.saveSnapshot(); this.dragging = p; }
       } else {
         if (p) {
           e.preventDefault();
@@ -352,6 +356,7 @@ class TacticalBoard {
       } else if (this.drawingArrow) {
         const dist = Math.sqrt((x - this.drawingArrow.fx) ** 2 + (y - this.drawingArrow.fy) ** 2);
         if (dist > 15) {
+          this.saveSnapshot();
           this.arrows.push({ fromId: this.drawingArrow.fromId, tx: x / this.W, ty: y / this.H });
         }
         this.drawingArrow = null;
@@ -361,6 +366,7 @@ class TacticalBoard {
         if (moved < 8) {
           const idx = this.getArrowAt(x, y);
           if (idx !== -1 && confirm('이 화살표를 삭제할까요?')) {
+            this.saveSnapshot();
             this.arrows.splice(idx, 1);
             needsRender = true;
           }
@@ -380,12 +386,52 @@ class TacticalBoard {
     this.canvas.addEventListener('touchend', onUp);
   }
 
+  cloneState() {
+    return {
+      players: this.players.map(p => ({ ...p })),
+      arrows: this.arrows.map(a => ({ ...a })),
+    };
+  }
+
+  saveSnapshot() {
+    this.history.push(this.cloneState());
+    this.future = [];
+    if (this.onHistoryChange) this.onHistoryChange();
+  }
+
+  undo() {
+    if (!this.history.length) return;
+    this.future.push(this.cloneState());
+    const state = this.history.pop();
+    this.players = state.players;
+    this.arrows = state.arrows;
+    this.dragging = null;
+    this.drawingArrow = null;
+    this.renderPlayerList();
+    this.render();
+    if (this.onHistoryChange) this.onHistoryChange();
+  }
+
+  redo() {
+    if (!this.future.length) return;
+    this.history.push(this.cloneState());
+    const state = this.future.pop();
+    this.players = state.players;
+    this.arrows = state.arrows;
+    this.dragging = null;
+    this.drawingArrow = null;
+    this.renderPlayerList();
+    this.render();
+    if (this.onHistoryChange) this.onHistoryChange();
+  }
+
   setMode(mode) {
     this.mode = mode;
     this.canvas.style.cursor = mode === 'arrow' ? 'crosshair' : 'default';
   }
 
   resetTeam(team) {
+    this.saveSnapshot();
     this.arrows = this.arrows.filter(a => {
       const from = this.players.find(p => p.id === a.fromId);
       return from && from.team !== team;
@@ -396,6 +442,7 @@ class TacticalBoard {
   }
 
   clearArrows() {
+    this.saveSnapshot();
     this.arrows = [];
     this.render();
   }
@@ -439,6 +486,7 @@ class TacticalBoard {
           if (player) { player.name = e.target.value; this.render(); }
         });
         row.querySelector('.delete-btn').addEventListener('click', (e) => {
+          this.saveSnapshot();
           this.removePlayer(parseInt(e.target.dataset.id));
         });
         el.appendChild(row);
