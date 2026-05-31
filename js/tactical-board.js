@@ -110,10 +110,6 @@ class TacticalBoard {
     if (!slots) return;
     this.saveSnapshot();
     this.players = this.players.filter(p => p.team !== team);
-    this.arrows = this.arrows.filter(a => {
-      const from = this.players.find(p => p.id === a.fromId);
-      return from && from.team !== team;
-    });
     const yFlip = team === 'away';
     slots.forEach(slot => {
       const y = yFlip ? 1 - slot.y : slot.y;
