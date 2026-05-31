@@ -66,8 +66,10 @@ class TacticalBoard {
     this.players = [];
     this.arrows = [];
     this.dragging = null;
+    this.draggingBall = false;
     this.drawingArrow = null;
     this.nextId = 1;
+    this.ball = { x: 0.5, y: 0.5 };
 
     this.mode = 'move'; // 'move' | 'arrow'
     this.history = [];
@@ -292,6 +294,50 @@ class TacticalBoard {
     this.drawPitch();
     this.drawArrows();
     this.drawPlayers();
+    this.drawBall();
+  }
+
+  drawBall() {
+    const { ctx } = this;
+    const x = this.ball.x * this.W;
+    const y = this.ball.y * this.H;
+    const r = Math.min(this.W, this.H) * 0.028;
+
+    // Shadow
+    ctx.beginPath();
+    ctx.arc(x + 2, y + 2, r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fill();
+
+    // Ball body
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.strokeStyle = '#111111';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Center patch
+    ctx.fillStyle = '#111111';
+    ctx.beginPath();
+    ctx.arc(x, y, r * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 5 surrounding patches
+    for (let i = 0; i < 5; i++) {
+      const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
+      ctx.beginPath();
+      ctx.arc(x + Math.cos(angle) * r * 0.62, y + Math.sin(angle) * r * 0.62, r * 0.17, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  getBallAt(x, y) {
+    const r = Math.min(this.W, this.H) * 0.04;
+    const dx = this.ball.x * this.W - x;
+    const dy = this.ball.y * this.H - y;
+    return Math.sqrt(dx * dx + dy * dy) < r;
   }
 
   // --- Events ---
@@ -321,22 +367,35 @@ class TacticalBoard {
       const p = this.getPlayerAt(x, y);
 
       if (this.mode === 'move') {
-        if (p) { e.preventDefault(); this.saveSnapshot(); this.dragging = p; }
+        if (this.getBallAt(x, y)) {
+          e.preventDefault(); this.saveSnapshot(); this.draggingBall = true;
+        } else if (p) {
+          e.preventDefault(); this.saveSnapshot(); this.dragging = p;
+        }
       } else {
         e.preventDefault();
-        const startX = p ? p.x * this.W : x;
-        const startY = p ? p.y * this.H : y;
-        const color = p ? (p.team === 'home' ? '#4a9eff' : '#ff4a4a') : '#f5a623';
+        let startX, startY, color;
+        if (this.getBallAt(x, y)) {
+          startX = this.ball.x * this.W; startY = this.ball.y * this.H; color = '#000000';
+        } else if (p) {
+          startX = p.x * this.W; startY = p.y * this.H;
+          color = p.team === 'home' ? '#4a9eff' : '#ff4a4a';
+        } else {
+          startX = x; startY = y; color = '#f5a623';
+        }
         this.drawingArrow = { points: [{ x: startX, y: startY }], color };
       }
     };
 
     const onMove = (e) => {
       if (e.touches && e.touches.length > 1) return;
-      if (this.dragging || this.drawingArrow) {
+      if (this.dragging || this.draggingBall || this.drawingArrow) {
         e.preventDefault();
         const { x, y } = this.getPos(e);
-        if (this.dragging) {
+        if (this.draggingBall) {
+          this.ball.x = Math.max(0, Math.min(1, x / this.W));
+          this.ball.y = Math.max(0, Math.min(1, y / this.H));
+        } else if (this.dragging) {
           this.dragging.x = Math.max(0, Math.min(1, x / this.W));
           this.dragging.y = Math.max(0, Math.min(1, y / this.H));
         } else {
@@ -352,9 +411,12 @@ class TacticalBoard {
       const { x, y } = this.getPos(e);
       let needsRender = false;
 
-      if (this.mode === 'move' && this.dragging) {
+      if (this.draggingBall) {
+        this.draggingBall = false;
+        needsRender = true;
+      } else if (this.mode === 'move' && this.dragging) {
         if (x < 0 || x > this.W || y < 0 || y > this.H) {
-          this.removePlayer(this.dragging.id); // render 내부 호출
+          this.removePlayer(this.dragging.id);
         }
       } else if (this.drawingArrow) {
         const pts = this.drawingArrow.points;
@@ -396,7 +458,8 @@ class TacticalBoard {
   cloneState() {
     return {
       players: this.players.map(p => ({ ...p })),
-      arrows: this.arrows.map(a => ({ ...a })),
+      arrows: this.arrows.map(a => ({ ...a, points: a.points.map(pt => ({ ...pt })) })),
+      ball: { ...this.ball },
     };
   }
 
@@ -412,7 +475,9 @@ class TacticalBoard {
     const state = this.history.pop();
     this.players = state.players;
     this.arrows = state.arrows;
+    this.ball = state.ball;
     this.dragging = null;
+    this.draggingBall = false;
     this.drawingArrow = null;
     this.renderPlayerList();
     this.render();
@@ -425,7 +490,9 @@ class TacticalBoard {
     const state = this.future.pop();
     this.players = state.players;
     this.arrows = state.arrows;
+    this.ball = state.ball;
     this.dragging = null;
+    this.draggingBall = false;
     this.drawingArrow = null;
     this.renderPlayerList();
     this.render();
@@ -488,7 +555,7 @@ class TacticalBoard {
         row.className = 'player-item';
         row.innerHTML = `
           <div class="player-dot" style="background:${p.team === 'home' ? '#4a9eff' : '#ff4a4a'}"></div>
-          <span class="player-num">${p.num}</span>
+          <input type="number" class="num-input" data-id="${p.id}" value="${p.num}" min="1" max="99" />
           <select class="pos-select" data-id="${p.id}">
             ${posOptions}
             <option value="__custom__"${isCustom ? ' selected' : ''}>직접입력</option>
@@ -497,6 +564,13 @@ class TacticalBoard {
           <input type="text" class="name-input" data-id="${p.id}" value="${p.name || ''}" placeholder="이름" />
           <button class="delete-btn" data-id="${p.id}">✕</button>
         `;
+
+        row.querySelector('.num-input').addEventListener('change', (e) => {
+          const player = this.players.find(pl => pl.id === parseInt(e.target.dataset.id));
+          if (!player) return;
+          const val = parseInt(e.target.value);
+          if (!isNaN(val) && val >= 1) { player.num = val; this.render(); }
+        });
 
         row.querySelector('.pos-select').addEventListener('change', (e) => {
           const player = this.players.find(pl => pl.id === parseInt(e.target.dataset.id));
