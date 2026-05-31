@@ -51,7 +51,7 @@ arrowModeBtn.addEventListener('click', () => {
 });
 
 document.getElementById('clear-arrows-btn').addEventListener('click', () => {
-  board.clearArrows();
+  if (confirm('모든 화살표를 삭제할까요?')) board.clearArrows();
 });
 
 
