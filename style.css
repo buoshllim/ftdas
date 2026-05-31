@@ -238,7 +238,7 @@ header {
   font-size: 12px;
 }
 
-.num-input  { width: 40px; text-align: center; }
+.num-input  { width: 56px; text-align: center; }
 .pos-select { width: 72px; }
 .pos-custom { width: 52px; }
 .name-input { width: 64px; }
