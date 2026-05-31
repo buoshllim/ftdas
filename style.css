@@ -228,15 +228,19 @@ header {
   font-size: 13px;
 }
 
-.player-item input {
+.player-item input,
+.player-item select {
   background: var(--navy);
   color: var(--white);
   border: 1px solid var(--border);
-  padding: 3px 8px;
+  padding: 3px 6px;
   border-radius: 4px;
-  width: 80px;
   font-size: 12px;
 }
+
+.pos-select { width: 72px; }
+.pos-custom { width: 52px; }
+.name-input { width: 64px; }
 
 .player-dot {
   width: 12px;

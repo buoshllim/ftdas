@@ -276,8 +276,8 @@ class TacticalBoard {
 
       // Position text below circle
       ctx.fillStyle = '#fff';
-      ctx.font = `bold ${r * 0.55}px sans-serif`;
-      ctx.fillText(p.pos, x, y + r + r * 0.6);
+      ctx.font = `bold ${r * 0.8}px sans-serif`;
+      ctx.fillText(p.pos, x, y + r + r * 0.7);
 
       // Player name if set
       if (p.name) {
@@ -473,27 +473,60 @@ class TacticalBoard {
   }
 
   renderPlayerList() {
+    const posKeys = Object.keys(POSITIONS);
     ['home', 'away'].forEach(team => {
       const el = document.getElementById(`${team}-list`);
       if (!el) return;
       el.innerHTML = '';
       this.players.filter(p => p.team === team).forEach(p => {
+        const isCustom = !posKeys.includes(p.pos);
+        const posOptions = posKeys.map(pos =>
+          `<option value="${pos}"${pos === p.pos ? ' selected' : ''}>${pos}</option>`
+        ).join('');
+
         const row = document.createElement('div');
         row.className = 'player-item';
         row.innerHTML = `
           <div class="player-dot" style="background:${p.team === 'home' ? '#4a9eff' : '#ff4a4a'}"></div>
-          <span>${p.num}</span>
-          <input type="text" value="${p.name || ''}" placeholder="${p.pos}" data-id="${p.id}" />
+          <span class="player-num">${p.num}</span>
+          <select class="pos-select" data-id="${p.id}">
+            ${posOptions}
+            <option value="__custom__"${isCustom ? ' selected' : ''}>직접입력</option>
+          </select>
+          <input type="text" class="pos-custom" data-id="${p.id}" value="${isCustom ? p.pos : ''}" placeholder="포지션" style="display:${isCustom ? 'inline-block' : 'none'}" />
+          <input type="text" class="name-input" data-id="${p.id}" value="${p.name || ''}" placeholder="이름" />
           <button class="delete-btn" data-id="${p.id}">✕</button>
         `;
-        row.querySelector('input').addEventListener('input', (e) => {
+
+        row.querySelector('.pos-select').addEventListener('change', (e) => {
+          const player = this.players.find(pl => pl.id === parseInt(e.target.dataset.id));
+          if (!player) return;
+          const customInput = row.querySelector('.pos-custom');
+          if (e.target.value === '__custom__') {
+            customInput.style.display = 'inline-block';
+            customInput.focus();
+          } else {
+            customInput.style.display = 'none';
+            player.pos = e.target.value;
+            this.render();
+          }
+        });
+
+        row.querySelector('.pos-custom').addEventListener('input', (e) => {
+          const player = this.players.find(pl => pl.id === parseInt(e.target.dataset.id));
+          if (player) { player.pos = e.target.value; this.render(); }
+        });
+
+        row.querySelector('.name-input').addEventListener('input', (e) => {
           const player = this.players.find(pl => pl.id === parseInt(e.target.dataset.id));
           if (player) { player.name = e.target.value; this.render(); }
         });
+
         row.querySelector('.delete-btn').addEventListener('click', (e) => {
           this.saveSnapshot();
           this.removePlayer(parseInt(e.target.dataset.id));
         });
+
         el.appendChild(row);
       });
     });
